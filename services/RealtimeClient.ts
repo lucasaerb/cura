@@ -1,6 +1,7 @@
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { SessionStatus, RealtimeClientOptions } from '../types';
 import { OpenAIService } from './OpenAIService';
 
@@ -19,12 +20,11 @@ export class RealtimeClient {
     try {
       this.updateStatus('CONNECTING');
       
-      // Get OpenAI API key - for testing, we'll use a hardcoded one
-      // In production, this should come from your backend
+      // Get OpenAI API key from environment variables
       const apiKey = await this.getAPIKey();
       
       if (!apiKey) {
-        throw new Error('No OpenAI API key provided');
+        throw new Error('No OpenAI API key provided. Please set EXPO_PUBLIC_OPENAI_API_KEY in your .env file');
       }
 
       this.openAIService = new OpenAIService(apiKey);
@@ -60,15 +60,22 @@ export class RealtimeClient {
   }
 
   private async getAPIKey(): Promise<string> {
-    // TODO: Replace with your OpenAI API key
-    // For security, this should come from a backend service
-    const API_KEY = 'YOUR_OPENAI_API_KEY_HERE';
+    // Get API key from environment variables
+    const apiKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_OPENAI_API_KEY || 
+                   process.env.EXPO_PUBLIC_OPENAI_API_KEY;
     
-    if (API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
-      throw new Error('Please set your OpenAI API key in services/RealtimeClient.ts');
+    if (!apiKey || apiKey === 'your-openai-api-key-here') {
+      throw new Error(`
+Please set your OpenAI API key:
+
+1. Create a .env file in the project root
+2. Add: EXPO_PUBLIC_OPENAI_API_KEY=sk-your-actual-key-here
+3. Get your API key from: https://platform.openai.com/api-keys
+4. Restart the Expo server: npm start
+      `);
     }
     
-    return API_KEY;
+    return apiKey;
   }
 
   private sendWelcomeMessage(): void {

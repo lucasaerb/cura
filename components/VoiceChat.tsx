@@ -47,14 +47,9 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
   };
 
   const connect = async () => {
-    if (!sessionServiceRef.current) {
-      Alert.alert('Setup Required', 'Please configure your backend URL in the SessionService to connect to OpenAI Realtime API');
-      return;
-    }
-
     try {
       clientRef.current = new RealtimeClient({
-        getEphemeralKey: () => sessionServiceRef.current!.getEphemeralKey(),
+        getEphemeralKey: () => Promise.resolve(''), // Not needed for direct API calls
         onMessage: handleMessage,
         onStatusChange: handleStatusChange,
       });
@@ -62,7 +57,7 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
       await clientRef.current.connect();
     } catch (error) {
       console.error('Connection failed:', error);
-      Alert.alert('Connection Failed', 'Could not connect to OpenAI Realtime API. Please check your backend configuration.');
+      Alert.alert('Connection Failed', error.message || 'Could not connect to OpenAI API. Please check your API key configuration.');
     }
   };
 
