@@ -9,29 +9,32 @@ import {
   Dimensions 
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { TranscriptProvider } from './contexts/TranscriptContext';
+import { VoiceChat } from './components/VoiceChat';
 
 const { width, height } = Dimensions.get('window');
 
 export default function AIMenu({ onClose }) {
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#2D1B69" />
-        
-        {/* Header with close button */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeIcon}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Main content */}
-        <View style={styles.content}>
-          <View style={styles.placeholderContainer}>
-            <Text style={styles.placeholderText}>AI goes here</Text>
+      <TranscriptProvider>
+        <SafeAreaView style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor="#2D1B69" />
+          
+          {/* Header with close button */}
+          <View style={styles.header}>
+            <Text style={styles.title}>AI Assistant</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Text style={styles.closeIcon}>✕</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </SafeAreaView>
+
+          {/* Voice Chat Component */}
+          <View style={styles.content}>
+            <VoiceChat backendUrl="YOUR_BACKEND_URL" />
+          </View>
+        </SafeAreaView>
+      </TranscriptProvider>
     </SafeAreaProvider>
   );
 }
@@ -43,10 +46,16 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
   },
   closeButton: {
     width: 40,
@@ -63,22 +72,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  placeholderContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 40,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderStyle: 'dashed',
-  },
-  placeholderText: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: '500',
-    textAlign: 'center',
+    backgroundColor: '#E8E3FF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
   },
 }); 

@@ -628,7 +628,7 @@ export default function App() {
                   <Text style={styles.closeButtonText}>Close</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+    </View>
           </Modal>
         )}
       </SafeAreaView>
