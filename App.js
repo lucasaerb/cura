@@ -21,6 +21,7 @@ import { styles } from './styles';
 import AIMenu from './AIMenu';
 import ReportPage from './ReportPage';
 import CalendarPage from './CalendarPage';
+import ProfilePage from './ProfilePage';
 
 const { width } = Dimensions.get('window');
 
@@ -60,13 +61,13 @@ const initialMedications = [
     dueTime: '09:00',
     frequency: 'daily',
     instructions: 'Take at same time daily',
-    taken: true,
-    nextIntake: '9 am, Dec 13',
+    taken: false,
+    nextIntake: null,
     brandColor: '#2E5BFF',
     streak: 12,
     totalDoses: 21,
     missedDoses: 0,
-    lastTaken: new Date().toISOString(),
+    lastTaken: null,
     refillDate: '2024-12-15',
     prescribedBy: 'Dr. Johnson'
   },
@@ -102,6 +103,7 @@ export default function App() {
   const [showAIMenu, setShowAIMenu] = useState(false);
   const [showReportPage, setShowReportPage] = useState(false);
   const [showCalendarPage, setShowCalendarPage] = useState(false);
+  const [showProfilePage, setShowProfilePage] = useState(false);
   const medicationAnimations = useRef(new Map()).current;
 
   // Animation values
@@ -196,18 +198,27 @@ export default function App() {
     return now > dueDate;
   };
 
-  // Sort medications by priority: overdue first, then by due time
+  // Sort medications by priority: untaken first (overdue first, then by due time), then taken at bottom
   const getSortedMedications = () => {
     return [...medications].sort((a, b) => {
-      const aOverdue = isMedicationOverdue(a.dueTime, a.taken);
-      const bOverdue = isMedicationOverdue(b.dueTime, b.taken);
+      // First priority: taken medications always go to the bottom
+      if (a.taken && !b.taken) return 1;
+      if (!a.taken && b.taken) return -1;
       
-      // If one is overdue and the other isn't, overdue comes first
-      if (aOverdue && !bOverdue) return -1;
-      if (!aOverdue && bOverdue) return 1;
+      // If both are taken or both are untaken, sort by overdue status and time
+      if (a.taken === b.taken) {
+        const aOverdue = isMedicationOverdue(a.dueTime, a.taken);
+        const bOverdue = isMedicationOverdue(b.dueTime, b.taken);
+        
+        // If one is overdue and the other isn't, overdue comes first
+        if (aOverdue && !bOverdue) return -1;
+        if (!aOverdue && bOverdue) return 1;
+        
+        // If both have same overdue status, sort by due time
+        return a.dueTime.localeCompare(b.dueTime);
+      }
       
-      // If both are overdue or both are not overdue, sort by due time
-      return a.dueTime.localeCompare(b.dueTime);
+      return 0;
     });
   };
 
@@ -304,16 +315,7 @@ export default function App() {
           Animated.timing(scaleAnim, { toValue: 1, duration: 200, useNativeDriver: isNative })
         ])
       ]).start(() => {
-        // After animation completes, update the order
-        setTimeout(() => {
-          const reorderedMeds = [...updatedMeds].sort((a, b) => {
-            if (a.taken === b.taken) return 0;
-            if (a.taken) return 1;
-            return -1;
-          });
-          setMedications(reorderedMeds);
-          saveMedications(reorderedMeds);
-        }, 100);
+        // Animation completed
       });
       
       Alert.alert(
@@ -346,24 +348,6 @@ export default function App() {
     }
   };
 
-  const snoozeMedication = (medicationId) => {
-    Alert.alert(
-      "Snooze Reminder",
-      "Remind me again in:",
-      [
-        { text: "15 minutes", onPress: () => scheduleSnooze(medicationId, 15) },
-        { text: "30 minutes", onPress: () => scheduleSnooze(medicationId, 30) },
-        { text: "1 hour", onPress: () => scheduleSnooze(medicationId, 60) },
-        { text: "Cancel", style: "cancel" }
-      ]
-    );
-  };
-
-  const scheduleSnooze = (medicationId, minutes) => {
-    // In a real app, you'd schedule a local notification here
-    Alert.alert("Reminder Set", `I'll remind you again in ${minutes} minutes!`);
-  };
-
   const getUpcomingMedications = () => {
     return medications
       .filter(med => !med.taken)
@@ -372,24 +356,24 @@ export default function App() {
   };
 
   const handleAvatarPress = () => {
-    Alert.alert(
-      "Profile Settings",
-      "Choose an option:",
-      [
-        { text: "Change Photo", onPress: () => Alert.alert("Coming Soon", "Photo selection feature coming soon!") },
-        { text: "Cancel", style: "cancel" }
-      ]
-    );
+    setShowProfilePage(true);
   };
 
   const getUserInitials = (name) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const isDueSoon = (dueTime) => {
-    const timeUntil = getTimeUntilDose(dueTime);
-    return timeUntil === 'NOW' || timeUntil.includes('m') && !timeUntil.includes('h');
-  };
+  // If profile page is open, show profile page instead of main app
+  if (showProfilePage) {
+    return (
+      <ProfilePage 
+        onClose={() => setShowProfilePage(false)} 
+        userName={userName}
+        userPhoto={userPhoto}
+        imageError={imageError}
+      />
+    );
+  }
 
   // If AI menu is open, show AI menu instead of main app
   if (showAIMenu) {
@@ -431,7 +415,7 @@ export default function App() {
                 )}
                 <View style={styles.avatarBorder} />
                 <View style={styles.editIconContainer}>
-                  <Text style={styles.editIcon}>⚙️</Text>
+                  <Icon name="person" size={12} color="white" />
                 </View>
               </TouchableOpacity>
               <View style={styles.greetingContainer}>
@@ -466,38 +450,6 @@ export default function App() {
 
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           
-          {/* Urgent Reminders */}
-          {getUpcomingMedications().some(med => isDueSoon(med.dueTime)) && (
-            <View style={styles.urgentSection}>
-              <Text style={styles.urgentTitle}>🚨 Due Now</Text>
-              {getUpcomingMedications()
-                .filter(med => isDueSoon(med.dueTime))
-                .map(medication => (
-                  <View key={medication.id} style={styles.urgentCard}>
-                    <View style={styles.urgentContent}>
-                      <Text style={styles.urgentMedName}>{medication.name}</Text>
-                      <Text style={styles.urgentTime}>{getTimeUntilDose(medication.dueTime)}</Text>
-                    </View>
-                    <View style={styles.urgentActions}>
-                      <TouchableOpacity 
-                        style={styles.snoozeButton}
-                        onPress={() => snoozeMedication(medication.id)}
-                      >
-                        <Text style={styles.snoozeText}>💤</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.urgentTakeButton}
-                        onPress={() => toggleMedicationStatus(medication.id)}
-                      >
-                        <Text style={styles.urgentTakeText}>Take Now</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
-              }
-            </View>
-          )}
-
           {/* Your day section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -527,7 +479,11 @@ export default function App() {
                         <Text style={styles.categoryText}>
                           {medication.category}
                         </Text>
-                        {isOverdue && <View style={styles.overdueNotification} />}
+                        {isOverdue && (
+                          <View style={styles.missedBadge}>
+                            <Text style={styles.missedText}>Missed</Text>
+                          </View>
+                        )}
                       </View>
                       {!medication.taken && (
                         <TouchableOpacity 

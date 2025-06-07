@@ -132,62 +132,6 @@ export const styles = StyleSheet.create({
     color: '#6B4E8D',
     marginTop: 2,
   },
-  urgentSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  urgentTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E74C3C',
-    marginBottom: 10,
-  },
-  urgentCard: {
-    backgroundColor: '#FFF5F5',
-    borderRadius: 12,
-    padding: 15,
-    borderLeftWidth: 4,
-    borderLeftColor: '#E74C3C',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  urgentContent: {
-    flex: 1,
-  },
-  urgentMedName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D1B69',
-  },
-  urgentTime: {
-    fontSize: 14,
-    color: '#E74C3C',
-    fontWeight: '600',
-  },
-  urgentActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  snoozeButton: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 20,
-    padding: 8,
-  },
-  snoozeText: {
-    fontSize: 16,
-  },
-  urgentTakeButton: {
-    backgroundColor: '#E74C3C',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-  },
-  urgentTakeText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
   scrollContainer: {
     flex: 1,
     backgroundColor: '#E8E3FF',
@@ -264,6 +208,19 @@ export const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginLeft: 8,
+  },
+  missedBadge: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  missedText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   infoButton: {
     width: 24,
