@@ -95,7 +95,7 @@ const initialMedications = [
 export default function App() {
   const [medications, setMedications] = useState(initialMedications);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [userName] = useState('Linda');
+  const [userName] = useState('Ligma');
   const [userStreak, setUserStreak] = useState(12);
   const [userPhoto] = useState(profilePicture);
   const [imageError, setImageError] = useState(false);
