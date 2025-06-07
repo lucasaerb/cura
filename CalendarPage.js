@@ -13,7 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
-export default function ReportPage({ onClose }) {
+export default function CalendarPage({ onClose }) {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
@@ -22,7 +22,7 @@ export default function ReportPage({ onClose }) {
         {/* Header with close button */}
         <Header
           centerComponent={{ 
-            text: 'Reports', 
+            text: 'Calendar', 
             style: { color: '#2D1B69', fontSize: 24, fontWeight: 'bold' } 
           }}
           rightComponent={
@@ -41,27 +41,31 @@ export default function ReportPage({ onClose }) {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <Card containerStyle={styles.placeholderContainer}>
             <View style={styles.cardContent}>
-              <Icon name="assessment" size={48} color="#2D1B69" style={styles.reportMainIcon} />
-              <Text style={styles.placeholderTitle}>Health Reports</Text>
+              <Icon name="calendar-today" size={48} color="#2D1B69" style={styles.calendarMainIcon} />
+              <Text style={styles.placeholderTitle}>Medication Calendar</Text>
               <Text style={styles.placeholderText}>
-                Your medication reports and analytics will appear here.
+                Your medication schedule and calendar view will appear here.
               </Text>
               <View style={styles.featureList}>
                 <View style={styles.featureItem}>
-                  <Icon name="trending-up" size={20} color="#6B4E8D" />
-                  <Text style={styles.featureText}>Adherence tracking</Text>
+                  <Icon name="view-module" size={20} color="#6B4E8D" />
+                  <Text style={styles.featureText}>Monthly calendar view</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <Icon name="date-range" size={20} color="#6B4E8D" />
-                  <Text style={styles.featureText}>Weekly summaries</Text>
+                  <Icon name="schedule" size={20} color="#6B4E8D" />
+                  <Text style={styles.featureText}>Medication schedule overview</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <Icon name="bar-chart" size={20} color="#6B4E8D" />
-                  <Text style={styles.featureText}>Progress charts</Text>
+                  <Icon name="error-outline" size={20} color="#6B4E8D" />
+                  <Text style={styles.featureText}>Missed dose tracking</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <Icon name="cloud-download" size={20} color="#6B4E8D" />
-                  <Text style={styles.featureText}>Export options</Text>
+                  <Icon name="notification-important" size={20} color="#6B4E8D" />
+                  <Text style={styles.featureText}>Appointment reminders</Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <Icon name="refresh" size={20} color="#6B4E8D" />
+                  <Text style={styles.featureText}>Prescription refill dates</Text>
                 </View>
               </View>
             </View>
@@ -102,7 +106,7 @@ const styles = {
   cardContent: {
     alignItems: 'center',
   },
-  reportMainIcon: {
+  calendarMainIcon: {
     marginBottom: 15,
   },
   placeholderTitle: {

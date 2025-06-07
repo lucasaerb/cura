@@ -8,28 +8,31 @@ import {
   StyleSheet,
   Dimensions 
 } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
 export default function AIMenu({ onClose }) {
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2D1B69" />
-      
-      {/* Header with close button */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeIcon}>✕</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Main content */}
-      <View style={styles.content}>
-        <View style={styles.placeholderContainer}>
-          <Text style={styles.placeholderText}>AI goes here</Text>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#2D1B69" />
+        
+        {/* Header with close button */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeIcon}>✕</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-    </SafeAreaView>
+
+        {/* Main content */}
+        <View style={styles.content}>
+          <View style={styles.placeholderContainer}>
+            <Text style={styles.placeholderText}>AI goes here</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

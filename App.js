@@ -10,17 +10,25 @@ import {
   StatusBar,
   Image,
   Modal,
-  TextInput,
   Animated,
   Dimensions,
   Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { styles } from './styles';
 import AIMenu from './AIMenu';
 import ReportPage from './ReportPage';
+import CalendarPage from './CalendarPage';
 
 const { width } = Dimensions.get('window');
+
+// Check if we're running on native platform for useNativeDriver
+const isNative = Platform.OS !== 'web';
+
+// Import local profile picture
+const profilePicture = require('./assets/pfp.jpg');
 
 // Sample medication data with enhanced structure
 const initialMedications = [
@@ -88,25 +96,30 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [userName] = useState('Linda');
   const [userStreak, setUserStreak] = useState(12);
-  const [userPhoto] = useState('https://images.unsplash.com/photo-1494790108755-2616b612b1c3?w=150&h=150&fit=crop&crop=face');
+  const [userPhoto] = useState(profilePicture);
   const [imageError, setImageError] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState(null);
   const [showAIMenu, setShowAIMenu] = useState(false);
   const [showReportPage, setShowReportPage] = useState(false);
-  const [newMedication, setNewMedication] = useState({
-    name: '',
-    dosage: '',
-    category: '',
-    dueTime: '09:00',
-    frequency: 'daily',
-    instructions: ''
-  });
+  const [showCalendarPage, setShowCalendarPage] = useState(false);
+  const medicationAnimations = useRef(new Map()).current;
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const breathingAnim = useRef(new Animated.Value(1)).current;
+
+  // Initialize animations for medications
+  useEffect(() => {
+    medications.forEach(med => {
+      if (!medicationAnimations.has(med.id)) {
+        medicationAnimations.set(med.id, {
+          scale: new Animated.Value(med.taken ? 0.95 : 1),
+          opacity: new Animated.Value(med.taken ? 0.6 : 1),
+        });
+      }
+    });
+  }, [medications]);
 
   // Load data on app start
   useEffect(() => {
@@ -125,12 +138,12 @@ export default function App() {
           Animated.timing(breathingAnim, {
             toValue: 1.1,
             duration: 2000,
-            useNativeDriver: true,
+            useNativeDriver: isNative,
           }),
           Animated.timing(breathingAnim, {
             toValue: 1,
             duration: 2000,
-            useNativeDriver: true,
+            useNativeDriver: isNative,
           }),
         ])
       ).start();
@@ -171,6 +184,33 @@ export default function App() {
     return now.toLocaleDateString('en-US', options);
   };
 
+  // Check if a medication is overdue
+  const isMedicationOverdue = (dueTime, taken) => {
+    if (taken) return false;
+    
+    const now = new Date();
+    const [hours, minutes] = dueTime.split(':').map(Number);
+    const dueDate = new Date();
+    dueDate.setHours(hours, minutes, 0, 0);
+    
+    return now > dueDate;
+  };
+
+  // Sort medications by priority: overdue first, then by due time
+  const getSortedMedications = () => {
+    return [...medications].sort((a, b) => {
+      const aOverdue = isMedicationOverdue(a.dueTime, a.taken);
+      const bOverdue = isMedicationOverdue(b.dueTime, b.taken);
+      
+      // If one is overdue and the other isn't, overdue comes first
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      
+      // If both are overdue or both are not overdue, sort by due time
+      return a.dueTime.localeCompare(b.dueTime);
+    });
+  };
+
   const getTimeUntilDose = (dueTime) => {
     const now = new Date();
     const [hours, minutes] = dueTime.split(':').map(Number);
@@ -204,6 +244,11 @@ export default function App() {
 
   // Enhanced medication management
   const toggleMedicationStatus = (medicationId) => {
+    const medication = medications.find(med => med.id === medicationId);
+    const animations = medicationAnimations.get(medicationId);
+    
+    if (!animations) return;
+
     const updatedMeds = medications.map(med => {
       if (med.id === medicationId) {
         if (med.taken) {
@@ -238,17 +283,38 @@ export default function App() {
     setMedications(updatedMeds);
     saveMedications(updatedMeds);
     
-    const medication = medications.find(med => med.id === medicationId);
-    
     if (!medication.taken) {
-      // Was just marked as taken
+      // Was just marked as taken - animate to minimized state
       setUserStreak(prev => prev + 1);
       
-      // Animate success
-      Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.1, duration: 200, useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1, duration: 200, useNativeDriver: true })
-      ]).start();
+      Animated.parallel([
+        Animated.timing(animations.scale, {
+          toValue: 0.95,
+          duration: 300,
+          useNativeDriver: isNative,
+        }),
+        Animated.timing(animations.opacity, {
+          toValue: 0.6,
+          duration: 300,
+          useNativeDriver: isNative,
+        }),
+        // Success scale animation
+        Animated.sequence([
+          Animated.timing(scaleAnim, { toValue: 1.1, duration: 200, useNativeDriver: isNative }),
+          Animated.timing(scaleAnim, { toValue: 1, duration: 200, useNativeDriver: isNative })
+        ])
+      ]).start(() => {
+        // After animation completes, update the order
+        setTimeout(() => {
+          const reorderedMeds = [...updatedMeds].sort((a, b) => {
+            if (a.taken === b.taken) return 0;
+            if (a.taken) return 1;
+            return -1;
+          });
+          setMedications(reorderedMeds);
+          saveMedications(reorderedMeds);
+        }, 100);
+      });
       
       Alert.alert(
         "Great job! 💊",
@@ -256,8 +322,21 @@ export default function App() {
         [{ text: "Awesome!" }]
       );
     } else {
-      // Was just unmarked
+      // Was just unmarked - animate back to normal state
       setUserStreak(prev => Math.max(0, prev - 1));
+      
+      Animated.parallel([
+        Animated.timing(animations.scale, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: isNative,
+        }),
+        Animated.timing(animations.opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: isNative,
+        })
+      ]).start();
       
       Alert.alert(
         "Medication Unmarked",
@@ -283,61 +362,6 @@ export default function App() {
   const scheduleSnooze = (medicationId, minutes) => {
     // In a real app, you'd schedule a local notification here
     Alert.alert("Reminder Set", `I'll remind you again in ${minutes} minutes!`);
-  };
-
-  const addNewMedication = () => {
-    if (!newMedication.name || !newMedication.dosage) {
-      Alert.alert("Error", "Please fill in medication name and dosage");
-      return;
-    }
-
-    const newMed = {
-      ...newMedication,
-      id: Date.now(),
-      taken: false,
-      nextIntake: null,
-      brandColor: '#2E5BFF',
-      streak: 0,
-      totalDoses: 0,
-      missedDoses: 0,
-      lastTaken: null,
-      refillDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      prescribedBy: 'Dr. Unknown'
-    };
-
-    const updatedMeds = [...medications, newMed];
-    setMedications(updatedMeds);
-    saveMedications(updatedMeds);
-    setShowAddModal(false);
-    setNewMedication({
-      name: '',
-      dosage: '',
-      category: '',
-      dueTime: '09:00',
-      frequency: 'daily',
-      instructions: ''
-    });
-
-    Alert.alert("Success", "New medication added!");
-  };
-
-  const deleteMedication = (medicationId) => {
-    Alert.alert(
-      "Delete Medication",
-      "Are you sure you want to remove this medication?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            const updatedMeds = medications.filter(med => med.id !== medicationId);
-            setMedications(updatedMeds);
-            saveMedications(updatedMeds);
-          }
-        }
-      ]
-    );
   };
 
   const getUpcomingMedications = () => {
@@ -377,291 +401,281 @@ export default function App() {
     return <ReportPage onClose={() => setShowReportPage(false)} />;
   }
 
+  // If calendar page is open, show calendar page instead of main app
+  if (showCalendarPage) {
+    return <CalendarPage onClose={() => setShowCalendarPage(false)} />;
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#E8E3FF" />
-      
-      {/* Enhanced Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.userInfo}>
-            <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
-              {userPhoto && !imageError ? (
-                <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                  <Image 
-                    source={{ uri: userPhoto }}
-                    style={styles.avatar}
-                    onError={() => setImageError(true)}
-                  />
-                </Animated.View>
-              ) : (
-                <Animated.View style={[styles.avatarFallback, { transform: [{ scale: scaleAnim }] }]}>
-                  <Text style={styles.avatarInitials}>{getUserInitials(userName)}</Text>
-                </Animated.View>
-              )}
-              <View style={styles.avatarBorder} />
-              <View style={styles.editIconContainer}>
-                <Text style={styles.editIcon}>⚙️</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.greetingContainer}>
-              <Text style={styles.greeting}>Hello, {userName}</Text>
-              <Text style={styles.dateTime}>{getCurrentDateTime()}</Text>
-            </View>
-          </View>
-          <View style={styles.streakContainer}>
-            <Text style={styles.streakLabel}>Streak</Text>
-            <View style={styles.streakCircle}>
-              <Text style={styles.streakNumber}>{userStreak}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Quick Stats Bar */}
-      <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{medications.filter(m => m.taken).length}</Text>
-          <Text style={styles.statLabel}>Taken Today</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{medications.filter(m => !m.taken).length}</Text>
-          <Text style={styles.statLabel}>Remaining</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{medications.length}</Text>
-          <Text style={styles.statLabel}>Total Meds</Text>
-        </View>
-      </View>
-
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#E8E3FF" />
         
-        {/* Urgent Reminders */}
-        {getUpcomingMedications().some(med => isDueSoon(med.dueTime)) && (
-          <View style={styles.urgentSection}>
-            <Text style={styles.urgentTitle}>🚨 Due Now</Text>
-            {getUpcomingMedications()
-              .filter(med => isDueSoon(med.dueTime))
-              .map(medication => (
-                <View key={medication.id} style={styles.urgentCard}>
-                  <View style={styles.urgentContent}>
-                    <Text style={styles.urgentMedName}>{medication.name}</Text>
-                    <Text style={styles.urgentTime}>{getTimeUntilDose(medication.dueTime)}</Text>
-                  </View>
-                  <View style={styles.urgentActions}>
-                    <TouchableOpacity 
-                      style={styles.snoozeButton}
-                      onPress={() => snoozeMedication(medication.id)}
-                    >
-                      <Text style={styles.snoozeText}>💤</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.urgentTakeButton}
-                      onPress={() => toggleMedicationStatus(medication.id)}
-                    >
-                      <Text style={styles.urgentTakeText}>Take Now</Text>
-                    </TouchableOpacity>
-                  </View>
+        {/* Enhanced Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.userInfo}>
+              <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
+                {userPhoto && !imageError ? (
+                  <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+                    <Image 
+                      source={userPhoto}
+                      style={styles.avatar}
+                      onError={() => setImageError(true)}
+                    />
+                  </Animated.View>
+                ) : (
+                  <Animated.View style={[styles.avatarFallback, { transform: [{ scale: scaleAnim }] }]}>
+                    <Text style={styles.avatarInitials}>{getUserInitials(userName)}</Text>
+                  </Animated.View>
+                )}
+                <View style={styles.avatarBorder} />
+                <View style={styles.editIconContainer}>
+                  <Text style={styles.editIcon}>⚙️</Text>
                 </View>
-              ))
-            }
-          </View>
-        )}
-
-        {/* Your day section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your day:</Text>
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowAddModal(true)}
-            >
-              <Text style={styles.addButtonText}>+ Add</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {medications.map(medication => (
-            <TouchableOpacity 
-              key={medication.id} 
-              style={styles.medicationCard}
-              onLongPress={() => deleteMedication(medication.id)}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.categoryText}>{medication.category}</Text>
-                <TouchableOpacity 
-                  style={styles.infoButton}
-                  onPress={() => setSelectedMedication(medication)}
-                >
-                  <Text style={styles.infoIcon}>i</Text>
-                </TouchableOpacity>
+              </TouchableOpacity>
+              <View style={styles.greetingContainer}>
+                <Text style={styles.greeting}>Hello, {userName}</Text>
+                <Text style={styles.dateTime}>{getCurrentDateTime()}</Text>
               </View>
-              
-              <View style={styles.medicationContent}>
-                <View style={styles.medicationInfo}>
-                  <Text style={styles.medicationName}>{medication.name}</Text>
-                  {medication.genericName && (
-                    <Text style={styles.genericName}>{medication.genericName}</Text>
-                  )}
-                  <Text style={styles.dosageText}>{medication.dosage} • {medication.frequency}</Text>
-                  
-                  <View style={styles.timeline}>
-                    <View style={styles.timelineContainer}>
-                      <View style={[styles.timelineDot, { backgroundColor: medication.brandColor }]} />
-                      <View style={styles.timelineContent}>
-                        {medication.taken ? (
-                          <>
-                            <Text style={styles.statusText}>✅ Taken for today!</Text>
-                            {medication.nextIntake && (
-                              <>
-                                <View style={[styles.timelineDot, styles.nextDot]} />
-                                <Text style={styles.nextIntakeText}>Next: {medication.nextIntake}</Text>
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <Text style={[styles.statusText, isDueSoon(medication.dueTime) && styles.urgentText]}>
-                            Due at {formatTime(medication.dueTime)} • {getTimeUntilDose(medication.dueTime)}
-                          </Text>
-                        )}
-                      </View>
+            </View>
+            <View style={styles.streakContainer}>
+              <Text style={styles.streakLabel}>Streak</Text>
+              <View style={styles.streakCircle}>
+                <Text style={styles.streakNumber}>{userStreak}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Quick Stats Bar */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{medications.filter(m => m.taken).length}</Text>
+            <Text style={styles.statLabel}>Taken Today</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{medications.filter(m => !m.taken).length}</Text>
+            <Text style={styles.statLabel}>Remaining</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{medications.length}</Text>
+            <Text style={styles.statLabel}>Total Meds</Text>
+          </View>
+        </View>
+
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          
+          {/* Urgent Reminders */}
+          {getUpcomingMedications().some(med => isDueSoon(med.dueTime)) && (
+            <View style={styles.urgentSection}>
+              <Text style={styles.urgentTitle}>🚨 Due Now</Text>
+              {getUpcomingMedications()
+                .filter(med => isDueSoon(med.dueTime))
+                .map(medication => (
+                  <View key={medication.id} style={styles.urgentCard}>
+                    <View style={styles.urgentContent}>
+                      <Text style={styles.urgentMedName}>{medication.name}</Text>
+                      <Text style={styles.urgentTime}>{getTimeUntilDose(medication.dueTime)}</Text>
+                    </View>
+                    <View style={styles.urgentActions}>
+                      <TouchableOpacity 
+                        style={styles.snoozeButton}
+                        onPress={() => snoozeMedication(medication.id)}
+                      >
+                        <Text style={styles.snoozeText}>💤</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.urgentTakeButton}
+                        onPress={() => toggleMedicationStatus(medication.id)}
+                      >
+                        <Text style={styles.urgentTakeText}>Take Now</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
+                ))
+              }
+            </View>
+          )}
+
+          {/* Your day section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Your day:</Text>
+            </View>
+            
+            {getSortedMedications().map(medication => {
+              const animations = medicationAnimations.get(medication.id);
+              const isOverdue = isMedicationOverdue(medication.dueTime, medication.taken);
+              
+              return (
+                <Animated.View
+                  key={medication.id}
+                  style={[
+                    styles.medicationCard,
+                    animations && {
+                      transform: [{ scale: animations.scale }],
+                      opacity: animations.opacity,
+                    }
+                  ]}
+                >
+                  <TouchableOpacity 
+                    style={medication.taken ? styles.medicationCardContentCompressed : styles.medicationCardContent}
+                  >
+                    <View style={medication.taken ? styles.cardHeaderCompressed : styles.cardHeader}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={styles.categoryText}>
+                          {medication.category}
+                        </Text>
+                        {isOverdue && <View style={styles.overdueNotification} />}
+                      </View>
+                      {!medication.taken && (
+                        <TouchableOpacity 
+                          style={styles.infoButton}
+                          onPress={() => setSelectedMedication(medication)}
+                        >
+                          <Text style={styles.infoIcon}>i</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    
+                    <View style={styles.medicationContent}>
+                      {medication.taken ? (
+                        // Simplified view for taken medications
+                        <View style={styles.medicationInfoCompressed}>
+                          <Text style={styles.medicationNameCompressed}>
+                            {medication.name} - taken for today
+                          </Text>
+                        </View>
+                      ) : (
+                        // Full view for active medications
+                        <View style={styles.medicationInfo}>
+                          <Text style={styles.medicationName}>
+                            {medication.name}
+                          </Text>
+                          {medication.genericName && (
+                            <Text style={styles.genericName}>{medication.genericName}</Text>
+                          )}
+                          <Text style={styles.dosageText}>{medication.dosage} • {medication.frequency}</Text>
+                          
+                          <View style={styles.timeline}>
+                            <View style={styles.timelineContainer}>
+                              <View style={[styles.timelineDot, { backgroundColor: medication.brandColor }]} />
+                              <View style={styles.timelineContent}>
+                                <Text style={styles.statusText}>
+                                  {isOverdue ? 
+                                    `Was due at ${formatTime(medication.dueTime)}` :
+                                    `Due at ${formatTime(medication.dueTime)} • ${getTimeUntilDose(medication.dueTime)}`
+                                  }
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+                      
+                      <TouchableOpacity 
+                        style={[
+                          medication.taken ? styles.statusButtonCompressed : styles.statusButton, 
+                          { backgroundColor: medication.taken ? '#E8F5E8' : '#F0F0F0' }
+                        ]}
+                        onPress={() => toggleMedicationStatus(medication.id)}
+                      >
+                        <Text style={[
+                          styles.checkmark, 
+                          { color: medication.taken ? '#4CAF50' : '#999' }
+                        ]}>
+                          ✓
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
+          </View>
+        </ScrollView>
+
+        {/* Bottom Action Buttons */}
+        <View style={styles.bottomButtonsContainer}>
+          {/* Calendar Button - Left */}
+          <TouchableOpacity 
+            style={styles.sideButtonLeft}
+            onPress={() => setShowCalendarPage(true)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.sideButtonInner}>
+              <View style={styles.iconContainer}>
+                <Icon name="calendar-today" size={24} color="#2D1B69" />
+              </View>
+              <Text style={styles.buttonLabel}>calendar</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* AI Assistant Button - Center */}
+          <TouchableOpacity 
+            style={styles.aiButton}
+            onPress={() => setShowAIMenu(true)}
+            activeOpacity={0.9}
+          >
+            <Animated.View style={[styles.aiButtonInner, { transform: [{ scale: breathingAnim }] }]}>
+              <View style={styles.aiButtonGradient}>
+                <View style={styles.aiIconContainer}>
+                  <Icon name="assistant" size={32} color="white" />
+                </View>
+              </View>
+            </Animated.View>
+          </TouchableOpacity>
+
+          {/* Report Button - Right */}
+          <TouchableOpacity 
+            style={styles.sideButton}
+            onPress={() => setShowReportPage(true)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.sideButtonInner}>
+              <View style={styles.iconContainer}>
+                <Icon name="assessment" size={24} color="#2D1B69" />
+              </View>
+              <Text style={styles.buttonLabel}>report</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Medication Details Modal */}
+        {selectedMedication && (
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={!!selectedMedication}
+            onRequestClose={() => setSelectedMedication(null)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.detailsModal}>
+                <Text style={styles.detailsTitle}>{selectedMedication.name}</Text>
+                <Text style={styles.detailsSubtitle}>{selectedMedication.genericName}</Text>
+                
+                <View style={styles.detailsContent}>
+                  <Text style={styles.detailItem}>💊 Dosage: {selectedMedication.dosage}</Text>
+                  <Text style={styles.detailItem}>⏰ Time: {formatTime(selectedMedication.dueTime)}</Text>
+                  <Text style={styles.detailItem}>📅 Frequency: {selectedMedication.frequency}</Text>
+                  <Text style={styles.detailItem}>📝 Instructions: {selectedMedication.instructions}</Text>
+                  <Text style={styles.detailItem}>🔥 Streak: {selectedMedication.streak} days</Text>
+                  <Text style={styles.detailItem}>👨‍⚕️ Prescribed by: {selectedMedication.prescribedBy}</Text>
+                  <Text style={styles.detailItem}>🔄 Refill due: {selectedMedication.refillDate}</Text>
                 </View>
                 
                 <TouchableOpacity 
-                  style={[
-                    styles.statusButton, 
-                    { backgroundColor: medication.taken ? '#E8F5E8' : '#F0F0F0' }
-                  ]}
-                  onPress={() => toggleMedicationStatus(medication.id)}
+                  style={styles.closeButton}
+                  onPress={() => setSelectedMedication(null)}
                 >
-                  <Text style={[
-                    styles.checkmark, 
-                    { color: medication.taken ? '#4CAF50' : '#999' }
-                  ]}>
-                    ✓
-                  </Text>
+                  <Text style={styles.closeButtonText}>Close</Text>
                 </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      {/* AI Assistant Button */}
-      <TouchableOpacity 
-        style={styles.aiButton}
-        onPress={() => setShowAIMenu(true)}
-        activeOpacity={0.8}
-      >
-        <Animated.View style={[styles.aiButtonInner, { transform: [{ scale: breathingAnim }] }]}>
-          <View style={styles.aiButtonGradient}>
-            <Text style={styles.aiButtonIcon}>🤖</Text>
-          </View>
-        </Animated.View>
-      </TouchableOpacity>
-
-      {/* Report Button */}
-      <TouchableOpacity 
-        style={styles.reportButton}
-        onPress={() => setShowReportPage(true)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.reportButtonInner}>
-          <Text style={styles.reportButtonIcon}>📊</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Add Medication Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showAddModal}
-        onRequestClose={() => setShowAddModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Medication</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Medication Name"
-              value={newMedication.name}
-              onChangeText={(text) => setNewMedication({...newMedication, name: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Dosage (e.g., 10mg)"
-              value={newMedication.dosage}
-              onChangeText={(text) => setNewMedication({...newMedication, dosage: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Category"
-              value={newMedication.category}
-              onChangeText={(text) => setNewMedication({...newMedication, category: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Instructions"
-              value={newMedication.instructions}
-              onChangeText={(text) => setNewMedication({...newMedication, instructions: text})}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowAddModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={addNewMedication}
-              >
-                <Text style={styles.saveButtonText}>Add Medication</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Medication Details Modal */}
-      {selectedMedication && (
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={!!selectedMedication}
-          onRequestClose={() => setSelectedMedication(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.detailsModal}>
-              <Text style={styles.detailsTitle}>{selectedMedication.name}</Text>
-              <Text style={styles.detailsSubtitle}>{selectedMedication.genericName}</Text>
-              
-              <View style={styles.detailsContent}>
-                <Text style={styles.detailItem}>💊 Dosage: {selectedMedication.dosage}</Text>
-                <Text style={styles.detailItem}>⏰ Time: {formatTime(selectedMedication.dueTime)}</Text>
-                <Text style={styles.detailItem}>📅 Frequency: {selectedMedication.frequency}</Text>
-                <Text style={styles.detailItem}>📝 Instructions: {selectedMedication.instructions}</Text>
-                <Text style={styles.detailItem}>🔥 Streak: {selectedMedication.streak} days</Text>
-                <Text style={styles.detailItem}>👨‍⚕️ Prescribed by: {selectedMedication.prescribedBy}</Text>
-                <Text style={styles.detailItem}>🔄 Refill due: {selectedMedication.refillDate}</Text>
-              </View>
-              
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setSelectedMedication(null)}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      )}
-    </SafeAreaView>
+          </Modal>
+        )}
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
