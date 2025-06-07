@@ -12,6 +12,8 @@
     "@expo/metro-runtime": "~5.0.4",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~53.0.10",
+    "expo-av": "~15.1.5",
+    "expo-speech": "~13.1.7",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
@@ -22,7 +24,10 @@
     "react-native-web": "^0.20.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "@types/react": "^18.0.0",
+    "@types/react-native": "^0.72.0",
+    "typescript": "^5.0.0"
   },
   "private": true
 }
