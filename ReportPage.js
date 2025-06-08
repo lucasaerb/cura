@@ -105,6 +105,7 @@ export default function ReportPage({ onClose }) {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState('analytics');
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const timePeriods = [
     { id: 'week', label: 'Last 7 days' },
@@ -339,6 +340,12 @@ export default function ReportPage({ onClose }) {
               >
                 <Icon name="settings" size={24} color="#2D1B69" />
               </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={() => setShowShareModal(true)}
+              >
+                <Icon name="send" size={24} color="#2D1B69" />
+              </TouchableOpacity>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Icon name="close" size={24} color="#2D1B69" />
               </TouchableOpacity>
@@ -403,6 +410,33 @@ export default function ReportPage({ onClose }) {
             </Animated.View>
           </Animated.View>
         )}
+
+        {/* Share Modal */}
+        <Modal
+          visible={showShareModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowShareModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 28, alignItems: 'center', width: 300 }}>
+              <Icon name="send" size={40} color="#A18AFF" style={{ marginBottom: 16 }} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2D1B69', marginBottom: 12 }}>Share Report</Text>
+              <Text style={{ fontSize: 16, color: '#2D1B69', textAlign: 'center', marginBottom: 24 }}>
+                Share your report as a PDF with your doctor.
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: '#A18AFF', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 32, marginBottom: 8 }}
+                onPress={() => setShowShareModal(false)}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Send PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowShareModal(false)}>
+                <Text style={{ color: '#A18AFF', fontWeight: 'bold', fontSize: 16, marginTop: 8 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         {/* Tabs */}
         <View style={styles.tabContainer}>
