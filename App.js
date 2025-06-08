@@ -17,6 +17,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { styles } from './styles';
 import AIMenu from './AIMenu';
 import ReportPage from './ReportPage';
@@ -24,7 +25,7 @@ import CalendarPage from './CalendarPage';
 import ProfilePage from './ProfilePage';
 import CheckInPage from './CheckInPage';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // Check if we're running on native platform for useNativeDriver
 const isNative = Platform.OS !== 'web';
@@ -145,6 +146,9 @@ export default function App() {
   const [showCalendarPage, setShowCalendarPage] = useState(false);
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showCheckInPage, setShowCheckInPage] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [shouldFireConfetti, setShouldFireConfetti] = useState(false);
+  const [hasShownTodaysCelebration, setHasShownTodaysCelebration] = useState(false);
   const medicationAnimations = useRef(new Map()).current;
 
   // Animation values
@@ -205,9 +209,11 @@ export default function App() {
 
   const loadMedications = async () => {
     try {
-      // TEMPORARY: Force reset to use new medications with 5 drugs
+      // TEMPORARY: Force reset to show all 5 medications
       await AsyncStorage.removeItem('medications');
+      await AsyncStorage.removeItem('lastCelebrationDate'); // Also reset celebration status
       setMedications(initialMedications);
+      setHasShownTodaysCelebration(false); // Reset celebration flag
       saveMedications(initialMedications);
       
       // Original code (commented out temporarily):
@@ -409,6 +415,45 @@ export default function App() {
   const getUserInitials = (name) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
+
+  // Check if all medications are completed for the day
+  const checkAllMedicationsCompleted = () => {
+    const allCompleted = medications.every(med => med.taken);
+    const today = new Date().toDateString();
+    
+    console.log('Checking completion:', { allCompleted, hasShownTodaysCelebration, medicationsCount: medications.length });
+    
+    if (allCompleted && medications.length > 0 && !hasShownTodaysCelebration) {
+      console.log('🎉 All medications completed! Showing celebration...');
+      setShowCelebration(true);
+      setShouldFireConfetti(true);
+      setHasShownTodaysCelebration(true);
+      
+      // Save celebration date
+      AsyncStorage.setItem('lastCelebrationDate', today).catch(error => {
+        console.error('Error saving celebration date:', error);
+      });
+    }
+  };
+
+  // Check completion status whenever medications change
+  useEffect(() => {
+    checkAllMedicationsCompleted();
+  }, [medications]);
+
+  // Load celebration status on app start
+  useEffect(() => {
+    const loadCelebrationStatus = async () => {
+      try {
+        const today = new Date().toDateString();
+        const lastCelebrationDate = await AsyncStorage.getItem('lastCelebrationDate');
+        setHasShownTodaysCelebration(lastCelebrationDate === today);
+      } catch (error) {
+        console.error('Error loading celebration status:', error);
+      }
+    };
+    loadCelebrationStatus();
+  }, []);
 
   // If profile page is open, show profile page instead of main app
   if (showProfilePage) {
@@ -704,6 +749,81 @@ export default function App() {
                   <Text style={styles.closeButtonText}>Close</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* Celebration Modal with Confetti */}
+        {showCelebration && (
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={showCelebration}
+            onRequestClose={() => {
+              setShowCelebration(false);
+              setShouldFireConfetti(false);
+            }}
+          >
+            <View style={styles.celebrationOverlay}>
+              <View style={styles.celebrationModal}>
+                <Animated.View style={[styles.celebrationContent, { transform: [{ scale: scaleAnim }] }]}>
+                  <View style={styles.celebrationIcon}>
+                    <Icon name="celebration" size={64} color="#FFD700" />
+                  </View>
+                  <Text style={styles.celebrationTitle}>🎉 Congratulations, {userName}! 🎉</Text>
+                  <Text style={styles.celebrationSubtitle}>
+                    You've completed all your medications for today!
+                  </Text>
+                  <Text style={styles.celebrationMessage}>
+                    Keep up the amazing work! Your health journey is inspiring. 💪
+                  </Text>
+                  <View style={styles.celebrationStats}>
+                    <View style={styles.statBadge}>
+                      <Icon name="local-fire-department" size={20} color="#FF6B35" />
+                      <Text style={styles.statText}>{userStreak} day streak!</Text>
+                    </View>
+                    <View style={styles.statBadge}>
+                      <Icon name="check-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.statText}>100% complete</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.celebrationButton}
+                    onPress={() => {
+                      setShowCelebration(false);
+                      setShouldFireConfetti(false);
+                    }}
+                  >
+                    <Text style={styles.celebrationButtonText}>Awesome! 🚀</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+              
+              {/* Confetti positioned absolutely on top */}
+              {shouldFireConfetti && (
+                <View style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 1000,
+                  pointerEvents: 'none'
+                }}>
+                  <ConfettiCannon
+                    count={200}
+                    origin={{x: width/2, y: height * 0.1}}
+                    fadeOut={true}
+                    explosionSpeed={350}
+                    fallSpeed={3000}
+                    colors={['#FFD700', '#FF69B4', '#00CED1', '#98FB98', '#DDA0DD', '#F0E68C', '#FF6B35', '#4CAF50']}
+                    onAnimationEnd={() => {
+                      console.log('🎊 Confetti animation ended');
+                      setShouldFireConfetti(false);
+                    }}
+                  />
+                </View>
+              )}
             </View>
           </Modal>
         )}
