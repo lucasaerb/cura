@@ -67,14 +67,27 @@ const styles = StyleSheet.create({
   },
   closeIcon: {
     fontSize: 20,
-    color: 'white',
+    color: '#060070',
     fontWeight: 'bold',
   },
   content: {
     flex: 1,
-    backgroundColor: '#E8E3FF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  placeholderContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 40,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderStyle: 'dashed',
+  },
+  placeholderText: {
+    fontSize: 24,
+    color: '#060070',
+    fontWeight: '500',
+    textAlign: 'center',
   },
 }); 

@@ -75,19 +75,19 @@ export const styles = StyleSheet.create({
   greeting: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 2,
   },
   dateTime: {
     fontSize: 16,
-    color: '#6B4E8D',
+    color: '#060070',
   },
   streakContainer: {
     alignItems: 'center',
   },
   streakLabel: {
     fontSize: 14,
-    color: '#6B4E8D',
+    color: '#060070',
     marginBottom: 5,
   },
   streakCircle: {
@@ -103,7 +103,7 @@ export const styles = StyleSheet.create({
   streakNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   statsBar: {
     flexDirection: 'row',
@@ -125,11 +125,11 @@ export const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B4E8D',
+    color: '#060070',
     marginTop: 2,
   },
   scrollContainer: {
@@ -148,7 +148,7 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    color: '#2D1B69',
+    color: '#060070',
     fontWeight: '500',
   },
   medicationCard: {
@@ -194,12 +194,12 @@ export const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
-    color: '#6B4E8D',
+    color: '#060070',
     fontWeight: '500',
   },
   categoryTextOverdue: {
     fontSize: 14,
-    color: '#6B4E8D',
+    color: '#060070',
     fontWeight: '500',
   },
   overdueNotification: {
@@ -233,7 +233,7 @@ export const styles = StyleSheet.create({
   },
   infoIcon: {
     fontSize: 12,
-    color: '#2D1B69',
+    color: '#060070',
     fontWeight: 'bold',
   },
   medicationContent: {
@@ -251,29 +251,29 @@ export const styles = StyleSheet.create({
   medicationName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2E5BFF',
+    color: '#060070',
     marginBottom: 2,
   },
   medicationNameOverdue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2E5BFF',
+    color: '#060070',
     marginBottom: 2,
   },
   medicationNameCompressed: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#6B4E8D',
+    color: '#060070',
     lineHeight: 20,
   },
   genericName: {
     fontSize: 14,
-    color: '#6B4E8D',
+    color: '#060070',
     marginBottom: 5,
   },
   dosageText: {
     fontSize: 14,
-    color: '#6B4E8D',
+    color: '#060070',
     marginBottom: 10,
   },
   timeline: {
@@ -299,13 +299,13 @@ export const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     fontWeight: '500',
     lineHeight: 22,
   },
   statusTextOverdue: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     fontWeight: '500',
     lineHeight: 22,
   },
@@ -314,7 +314,7 @@ export const styles = StyleSheet.create({
   },
   nextIntakeText: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     fontWeight: '500',
     marginTop: 8,
     lineHeight: 22,
@@ -403,12 +403,12 @@ export const styles = StyleSheet.create({
   detailsTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 5,
   },
   detailsSubtitle: {
     fontSize: 16,
-    color: '#6B4E8D',
+    color: '#060070',
     marginBottom: 20,
   },
   detailsContent: {
@@ -416,7 +416,7 @@ export const styles = StyleSheet.create({
   },
   detailItem: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 10,
     lineHeight: 24,
   },
@@ -427,7 +427,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonText: {
-    color: 'white',
+    color: '#060070',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -464,7 +464,7 @@ export const styles = StyleSheet.create({
   },
   buttonLabel: {
     fontSize: 12,
-    color: '#2D1B69',
+    color: '#060070',
     fontWeight: '500',
   },
   calendarIcon: {
