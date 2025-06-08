@@ -593,7 +593,7 @@ export default function App() {
               <View style={styles.iconContainer}>
                 <Icon name="calendar-today" size={24} color="#2D1B69" />
               </View>
-              <Text style={styles.buttonLabel}>history</Text>
+              <Text style={styles.buttonLabel}>History</Text>
             </View>
           </TouchableOpacity>
 
@@ -625,7 +625,7 @@ export default function App() {
               <View style={styles.iconContainer}>
                 <Icon name="assessment" size={24} color="#2D1B69" />
               </View>
-              <Text style={styles.buttonLabel}>report</Text>
+              <Text style={styles.buttonLabel}>Report</Text>
             </View>
           </TouchableOpacity>
         </View>
