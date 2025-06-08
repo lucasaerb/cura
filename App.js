@@ -95,7 +95,7 @@ const initialMedications = [
 export default function App() {
   const [medications, setMedications] = useState(initialMedications);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [userName] = useState('Ligma');
+  const [userName] = useState('Linda');
   const [userStreak, setUserStreak] = useState(12);
   const [userPhoto] = useState(profilePicture);
   const [imageError, setImageError] = useState(false);
@@ -533,13 +533,13 @@ export default function App() {
                       <TouchableOpacity 
                         style={[
                           medication.taken ? styles.statusButtonCompressed : styles.statusButton, 
-                          { backgroundColor: medication.taken ? '#E8F5E8' : '#F0F0F0' }
+                          { backgroundColor: medication.taken ? '#E8F5E8' : '#E8E3FF' }
                         ]}
                         onPress={() => toggleMedicationStatus(medication.id)}
                       >
                         <Text style={[
                           styles.checkmark, 
-                          { color: medication.taken ? '#4CAF50' : '#999' }
+                          { color: medication.taken ? '#4CAF50' : '#8B5CF6' }
                         ]}>
                           ✓
                         </Text>

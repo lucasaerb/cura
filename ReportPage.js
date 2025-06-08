@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,8 @@ import {
   StatusBar,
   ScrollView,
   TouchableOpacity,
-  Dimensions 
+  Dimensions,
+  Modal
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,6 +16,9 @@ const { width, height } = Dimensions.get('window');
 
 export default function ReportPage({ onClose }) {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const dropdownButtonRef = useRef(null);
 
   const timePeriods = [
     { id: 'week', label: 'week' },
@@ -42,29 +46,62 @@ export default function ReportPage({ onClose }) {
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           
-          {/* Time Period Selector */}
-          <View style={styles.periodSection}>
-            <Text style={styles.viewLabel}>view:</Text>
-            <View style={styles.periodTabs}>
-              {timePeriods.map(period => (
-                <TouchableOpacity
-                  key={period.id}
-                  style={[
-                    styles.periodTab,
-                    selectedPeriod === period.id && styles.selectedTab
-                  ]}
-                  onPress={() => setSelectedPeriod(period.id)}
-                >
-                  <Text style={[
-                    styles.periodTabText,
-                    selectedPeriod === period.id && styles.selectedTabText
-                  ]}>
-                    {period.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* Time Period Dropdown Selector */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20, justifyContent: 'flex-end' }}>
+            <TouchableOpacity
+              ref={dropdownButtonRef}
+              style={styles.dropdownTextButton}
+              onPress={() => {
+                if (dropdownButtonRef.current) {
+                  dropdownButtonRef.current.measure((fx, fy, width, height, px, py) => {
+                    setDropdownPos({ x: px, y: py, width, height });
+                    setDropdownVisible(true);
+                  });
+                } else {
+                  setDropdownVisible(true);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.dropdownTextButtonText}>
+                time period
+              </Text>
+              <Icon name="expand-more" size={24} color="#2D1B69" style={{ marginLeft: 2, marginTop: 2 }} />
+            </TouchableOpacity>
           </View>
+          {/* Dropdown Modal */}
+          <Modal
+            visible={dropdownVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setDropdownVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.dropdownOverlay}
+              activeOpacity={1}
+              onPressOut={() => setDropdownVisible(false)}
+            >
+              <View style={[styles.dropdownMenu, { position: 'absolute', top: dropdownPos.y + dropdownPos.height, left: dropdownPos.x, minWidth: dropdownPos.width }] }>
+                {timePeriods.map(period => (
+                  <TouchableOpacity
+                    key={period.id}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedPeriod(period.id);
+                      setDropdownVisible(false);
+                    }}
+                  >
+                    <Text style={[
+                      styles.dropdownItemText,
+                      selectedPeriod === period.id && styles.selectedDropdownItemText
+                    ]}>
+                      {period.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           {/* Key Insights Section */}
           <View style={styles.section}>
@@ -204,7 +241,7 @@ const styles = {
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   closeButton: {
     padding: 8,
@@ -213,39 +250,48 @@ const styles = {
     flex: 1,
     paddingHorizontal: 20,
   },
-  periodSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
   viewLabel: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     marginRight: 12,
     fontWeight: '500',
   },
-  periodTabs: {
+  dropdownTextButton: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    padding: 0,
+    margin: 0,
   },
-  periodTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'white',
-  },
-  selectedTab: {
-    backgroundColor: '#A5B4FC',
-  },
-  periodTabText: {
-    fontSize: 16,
-    color: '#2D1B69',
-    fontWeight: '500',
-  },
-  selectedTabText: {
-    color: '#2D1B69',
-    fontWeight: '600',
+  dropdownTextButtonText: {
+    fontSize: 20,
+    color: '#060070',
     fontStyle: 'italic',
+    fontWeight: '400',
+    marginRight: 2,
+  },
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  dropdownMenu: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+  },
+  dropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E3FF',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#060070',
+  },
+  selectedDropdownItemText: {
+    fontWeight: 'bold',
+    color: '#060070',
   },
   section: {
     backgroundColor: 'white',
@@ -261,7 +307,7 @@ const styles = {
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 16,
   },
   insightItem: {
@@ -271,27 +317,27 @@ const styles = {
   },
   insightBullet: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     marginRight: 8,
     marginTop: 2,
   },
   insightText: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     lineHeight: 22,
     flex: 1,
   },
   medicationName: {
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   improvedText: {
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   noTrendsText: {
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   medicationCard: {
     marginBottom: 12,
@@ -299,7 +345,7 @@ const styles = {
   medicationHeader: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 8,
   },
   medicationItem: {
@@ -309,13 +355,13 @@ const styles = {
   },
   medicationBullet: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     marginRight: 8,
     marginTop: 2,
   },
   medicationText: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     lineHeight: 22,
     flex: 1,
   },
@@ -334,19 +380,19 @@ const styles = {
   },
   symptomBullet: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     marginRight: 8,
     marginTop: 2,
   },
   symptomText: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     lineHeight: 22,
     flex: 1,
   },
   symptomLabel: {
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   recommendationItem: {
     flexDirection: 'row',
@@ -355,19 +401,19 @@ const styles = {
   },
   recommendationBullet: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     marginRight: 8,
     marginTop: 2,
   },
   recommendationText: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     lineHeight: 22,
     flex: 1,
   },
   recommendationLabel: {
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   bottomSpacing: {
     height: 40,

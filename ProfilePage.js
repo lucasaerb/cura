@@ -124,7 +124,7 @@ export default function ProfilePage({ onClose, userName, userPhoto, imageError }
               </View>
 
               {/* Timeline Line */}
-              <View style={styles.timelineLine} />
+              <View style={[styles.timelineLine, { height: 44 }]} />
 
               {/* Neurological Appointment */}
               <View style={styles.appointmentItem}>
@@ -166,7 +166,7 @@ const styles = {
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   closeButton: {
     padding: 8,
@@ -212,12 +212,12 @@ const styles = {
   infoLabel: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 5,
   },
   infoValue: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
   },
   section: {
     backgroundColor: 'white',
@@ -239,7 +239,7 @@ const styles = {
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 16,
   },
   editButton: {
@@ -269,12 +269,12 @@ const styles = {
   },
   prescriptionGeneric: {
     fontSize: 14,
-    color: '#6B4E8D',
+    color: '#060070',
     marginBottom: 4,
   },
   prescriptionCategory: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
   },
   expandButton: {
     alignItems: 'center',
@@ -309,12 +309,12 @@ const styles = {
   },
   deviceName: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     textAlign: 'center',
   },
   deviceNameItalic: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -339,7 +339,7 @@ const styles = {
     position: 'absolute',
     left: 5,
     top: 32,
-    bottom: 32,
+    bottom: 20,
     width: 2,
     backgroundColor: '#2D1B69',
     zIndex: 1,
@@ -361,12 +361,12 @@ const styles = {
   appointmentType: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 4,
   },
   appointmentTime: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     fontStyle: 'italic',
   },
   bottomSpacing: {

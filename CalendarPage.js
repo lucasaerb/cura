@@ -242,7 +242,7 @@ const styles = {
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
   },
   closeButton: {
     padding: 8,
@@ -268,7 +268,7 @@ const styles = {
   },
   dateText: {
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#060070',
     fontWeight: '500',
   },
   weekSelector: {
@@ -299,18 +299,18 @@ const styles = {
   dayNumber: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 2,
   },
   dayName: {
     fontSize: 12,
-    color: '#6B4E8D',
+    color: '#060070',
   },
   todayText: {
     color: 'white',
   },
   selectedText: {
-    color: '#2D1B69',
+    color: '#060070',
   },
   medicationsContainer: {
     marginBottom: 30,
@@ -343,12 +343,12 @@ const styles = {
   medicationName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 4,
   },
   medicationTime: {
     fontSize: 16,
-    color: '#6B4E8D',
+    color: '#060070',
   },
   medicationActions: {
     flexDirection: 'row',
@@ -388,7 +388,7 @@ const styles = {
   historyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 16,
   },
   historyGrid: {
@@ -402,12 +402,12 @@ const styles = {
   historyDate: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2D1B69',
+    color: '#060070',
     marginBottom: 4,
   },
   historyDayName: {
     fontSize: 12,
-    color: '#6B4E8D',
+    color: '#060070',
     marginBottom: 8,
   },
   adherenceIndicator: {

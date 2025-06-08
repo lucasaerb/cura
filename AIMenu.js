@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   closeIcon: {
     fontSize: 20,
-    color: 'white',
+    color: '#060070',
     fontWeight: 'bold',
   },
   content: {
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 24,
-    color: 'white',
+    color: '#060070',
     fontWeight: '500',
     textAlign: 'center',
   },
