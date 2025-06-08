@@ -13,7 +13,7 @@ import { Chat } from './components/Chat';
 
 const { width, height } = Dimensions.get('window');
 
-export default function AIMenu({ onClose }) {
+export default function AIMenu({ onClose, isCheckIn }) {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
@@ -29,7 +29,7 @@ export default function AIMenu({ onClose }) {
 
         {/* Chat Component */}
         <View style={styles.content}>
-          <Chat />
+          <Chat isCheckIn={isCheckIn} />
         </View>
       </SafeAreaView>
     </SafeAreaProvider>

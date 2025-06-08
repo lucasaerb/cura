@@ -113,10 +113,18 @@ const TypingIndicator = () => {
   );
 };
 
-export const Chat = () => {
-  const [messages, setMessages] = useState([]);
+export const Chat = ({ isCheckIn }) => {
+  const [messages, setMessages] = useState(
+    isCheckIn ? [
+      {
+        id: 'welcome',
+        text: "Hi! How are you feeling today?",
+        sender: 'ai'
+      }
+    ] : []
+  );
   const [inputText, setInputText] = useState('');
-  const [hasStarted, setHasStarted] = useState(false);
+  const [hasStarted, setHasStarted] = useState(isCheckIn);
   const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef(null);
 
