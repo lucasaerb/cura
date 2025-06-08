@@ -9,32 +9,29 @@ import {
   Dimensions 
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { TranscriptProvider } from './contexts/TranscriptContext';
-import { VoiceChat } from './components/VoiceChat';
+import { Chat } from './components/Chat';
 
 const { width, height } = Dimensions.get('window');
 
 export default function AIMenu({ onClose }) {
   return (
     <SafeAreaProvider>
-      <TranscriptProvider>
-        <SafeAreaView style={styles.container}>
-          <StatusBar barStyle="light-content" backgroundColor="#2D1B69" />
-          
-          {/* Header with close button */}
-          <View style={styles.header}>
-            <Text style={styles.title}>AI Assistant</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeIcon}>✕</Text>
-            </TouchableOpacity>
-          </View>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#2D1B69" />
+        
+        {/* Header with close button */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Talk to Cura</Text>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeIcon}>✕</Text>
+          </TouchableOpacity>
+        </View>
 
-          {/* Voice Chat Component */}
-          <View style={styles.content}>
-            <VoiceChat />
-          </View>
-        </SafeAreaView>
-      </TranscriptProvider>
+        {/* Chat Component */}
+        <View style={styles.content}>
+          <Chat />
+        </View>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
@@ -72,9 +69,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: '#E8E3FF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    width: '100%',
   },
   placeholderContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
