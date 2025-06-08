@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -15,6 +15,15 @@ import { VoiceChat } from './components/VoiceChat';
 const { width, height } = Dimensions.get('window');
 
 export default function AIMenu({ onClose }) {
+  const voiceChatRef = useRef(null);
+
+  const handleClose = () => {
+    if (voiceChatRef.current) {
+      voiceChatRef.current.disconnect();
+    }
+    onClose();
+  };
+
   return (
     <SafeAreaProvider>
       <TranscriptProvider>
@@ -24,14 +33,17 @@ export default function AIMenu({ onClose }) {
           {/* Header with close button */}
           <View style={styles.header}>
             <Text style={styles.title}>AI Assistant</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <Text style={styles.closeIcon}>✕</Text>
             </TouchableOpacity>
           </View>
 
           {/* Voice Chat Component */}
           <View style={styles.content}>
-            <VoiceChat backendUrl="http://localhost:8000" />
+            <VoiceChat 
+              ref={voiceChatRef}
+              backendUrl="http://localhost:8000" 
+            />
           </View>
         </SafeAreaView>
       </TranscriptProvider>

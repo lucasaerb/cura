@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ interface VoiceChatProps {
   backendUrl?: string;
 }
 
-export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
+export const VoiceChat = forwardRef<{ disconnect: () => void }, VoiceChatProps>(({ backendUrl }, ref) => {
   const [status, setStatus] = useState<SessionStatus>('DISCONNECTED');
   const [isRecording, setIsRecording] = useState(false);
   
@@ -26,6 +26,15 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
   const sessionServiceRef = useRef<SessionService | null>(null);
   const orbScale = useRef(new Animated.Value(1)).current;
   const orbOpacity = useRef(new Animated.Value(0.6)).current;
+
+  useImperativeHandle(ref, () => ({
+    disconnect: () => {
+      if (clientRef.current) {
+        clientRef.current.disconnect();
+        clientRef.current = null;
+      }
+    }
+  }));
 
   // Initialize session service and auto-connect
   useEffect(() => {
@@ -107,13 +116,6 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
     }
   };
 
-  const disconnect = () => {
-    if (clientRef.current) {
-      clientRef.current.disconnect();
-      clientRef.current = null;
-    }
-  };
-
   const startRecording = async () => {
     if (clientRef.current && status === 'CONNECTED') {
       setIsRecording(true);
@@ -143,7 +145,7 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
           ]}
         />
         <Text style={styles.orbText}>
-          {isRecording ? 'Listening...' : 'Hold to Speak'}
+          {isRecording ? 'Listening...' : ''}
         </Text>
       </View>
 
@@ -161,7 +163,7 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -169,6 +171,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E3FF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  exitButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   orbContainer: {
     alignItems: 'center',
