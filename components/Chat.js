@@ -129,9 +129,9 @@ export const Chat = ({ isCheckIn }) => {
   const flatListRef = useRef(null);
 
   const examplePrompts = [
-    "What can you help me with?",
+    "What instructions did my doctor give me?",
     "How do I get started?",
-    "Tell me about your features",
+    "Are there any known side effects of Metformin?",
   ];
 
   // Function to scroll to bottom
@@ -230,13 +230,10 @@ export const Chat = ({ isCheckIn }) => {
 
   const renderLandingPage = () => (
     <View style={styles.landingContainer}>
-      {/* <View style={styles.welcomeContainer}>
-        <Text style={styles.welcomeTitle}>Welcome to Cura AI</Text>
-        <Text style={styles.welcomeSubtitle}>Your personal AI assistant</Text>
-      </View> */}
+
       
       <View style={styles.examplesContainer}>
-        <Text style={styles.examplesTitle}>Try asking me about:</Text>
+        <Text style={styles.examplesTitle}>How can I help you today?</Text>
         {examplePrompts.map((prompt, index) => (
           <TouchableOpacity
             key={index}
@@ -304,43 +301,58 @@ const styles = StyleSheet.create({
   },
   landingContainer: {
     flex: 1,
-    padding: 20,
+    padding: 24,
     justifyContent: 'center',
+    backgroundColor: '#E8E3FF',
   },
   welcomeContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
   },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '700',
     color: '#2D1B69',
-    marginBottom: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   welcomeSubtitle: {
     fontSize: 18,
     color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
   },
   examplesContainer: {
     marginTop: 20,
+    paddingHorizontal: 8,
   },
   examplesTitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#2D1B69',
-    marginBottom: 16,
-    fontWeight: '500',
+    marginBottom: 20,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   exampleButton: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    shadowColor: '#2D1B69',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   exampleText: {
     fontSize: 16,
     color: '#2D1B69',
+    fontWeight: '500',
   },
   messageList: {
     flex: 1,
