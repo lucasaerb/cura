@@ -90,6 +90,44 @@ const initialMedications = [
     lastTaken: null,
     refillDate: '2024-12-25',
     prescribedBy: 'Dr. Davis'
+  },
+  {
+    id: 4,
+    name: 'Lisinopril',
+    genericName: 'lisinopril',
+    category: 'Blood Pressure',
+    dosage: '10mg',
+    dueTime: '08:00',
+    frequency: 'daily',
+    instructions: 'Take on empty stomach',
+    taken: false,
+    nextIntake: null,
+    brandColor: '#2E5BFF',
+    streak: 14,
+    totalDoses: 30,
+    missedDoses: 1,
+    lastTaken: null,
+    refillDate: '2024-12-30',
+    prescribedBy: 'Dr. Wilson'
+  },
+  {
+    id: 5,
+    name: 'Atorvastatin',
+    genericName: 'atorvastatin calcium',
+    category: 'Cholesterol',
+    dosage: '20mg',
+    dueTime: '21:00',
+    frequency: 'daily',
+    instructions: 'Take in the evening',
+    taken: false,
+    nextIntake: null,
+    brandColor: '#2E5BFF',
+    streak: 9,
+    totalDoses: 30,
+    missedDoses: 0,
+    lastTaken: null,
+    refillDate: '2025-01-05',
+    prescribedBy: 'Dr. Brown'
   }
 ];
 
@@ -167,10 +205,16 @@ export default function App() {
 
   const loadMedications = async () => {
     try {
-      const savedMedications = await AsyncStorage.getItem('medications');
-      if (savedMedications) {
-        setMedications(JSON.parse(savedMedications));
-      }
+      // TEMPORARY: Force reset to use new medications with 5 drugs
+      await AsyncStorage.removeItem('medications');
+      setMedications(initialMedications);
+      saveMedications(initialMedications);
+      
+      // Original code (commented out temporarily):
+      // const savedMedications = await AsyncStorage.getItem('medications');
+      // if (savedMedications) {
+      //   setMedications(JSON.parse(savedMedications));
+      // }
     } catch (error) {
       console.error('Error loading medications:', error);
     }
