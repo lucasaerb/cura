@@ -371,11 +371,11 @@ export default function App() {
         // Animation completed
       });
       
-      Alert.alert(
-        "Great job! 💊",
-        `Medication taken! Keep up the great work.`,
-        [{ text: "Awesome!" }]
-      );
+      // Alert.alert(
+      //   "Great job! 💊",
+      //   `Medication taken! Keep up the great work.`,
+      //   [{ text: "Awesome!" }]
+      // );
     } else {
       // Was just unmarked - animate back to normal state
       setUserStreak(prev => Math.max(0, prev - 1));
@@ -393,11 +393,11 @@ export default function App() {
         })
       ]).start();
       
-      Alert.alert(
-        "Medication Unmarked",
-        `${medication.name} has been unmarked as not taken.`,
-        [{ text: "OK" }]
-      );
+      // Alert.alert(
+      //   "Medication Unmarked",
+      //   `${medication.name} has been unmarked as not taken.`,
+      //   [{ text: "OK" }]
+      // );
     }
   };
 
@@ -679,8 +679,8 @@ export default function App() {
             activeOpacity={0.9}
           >
             <View style={styles.sideButtonInner}>
-              <View style={styles.iconContainer}>
-                <Icon name="calendar-today" size={24} color="#2D1B69" />
+              <View style={styles.sideButtonIconContainer}>
+                <Icon name="calendar-today" size={24} color="#E8E3FF" />
               </View>
               <Text style={styles.buttonLabel}>History</Text>
             </View>
@@ -711,8 +711,8 @@ export default function App() {
             activeOpacity={0.9}
           >
             <View style={styles.sideButtonInner}>
-              <View style={styles.iconContainer}>
-                <Icon name="assessment" size={24} color="#2D1B69" />
+              <View style={styles.sideButtonIconContainer}>
+                <Icon name="assessment" size={24} color="#E8E3FF" />
               </View>
               <Text style={styles.buttonLabel}>Report</Text>
             </View>
