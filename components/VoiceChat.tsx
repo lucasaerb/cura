@@ -25,7 +25,6 @@ interface VoiceChatProps {
 export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
   const [status, setStatus] = useState<SessionStatus>('DISCONNECTED');
   const [inputText, setInputText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   
   const { transcriptItems, addMessage, updateMessage, clearTranscript } = useTranscript();
   const clientRef = useRef<RealtimeClient | null>(null);
@@ -95,25 +94,18 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
     }
   };
 
-  const startRecording = async () => {
-    if (clientRef.current && status === 'CONNECTED') {
-      setIsRecording(true);
-      await clientRef.current.startRecording();
-    }
-  };
-
-  const stopRecording = async () => {
-    if (clientRef.current && isRecording) {
-      setIsRecording(false);
-      await clientRef.current.stopRecording();
-    }
-  };
-
   const sendTextMessage = async () => {
     if (clientRef.current && inputText.trim()) {
       addMessage(`user-${Date.now()}`, 'user', inputText);
       await clientRef.current.sendTextMessage(inputText);
       setInputText('');
+    }
+  };
+
+  const handleKeyPress = (event: any) => {
+    if (event.nativeEvent.key === 'Enter' && !event.nativeEvent.shiftKey) {
+      event.preventDefault();
+      sendTextMessage();
     }
   };
 
@@ -257,7 +249,7 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
           {status === 'DISCONNECTED' ? (
             <TouchableOpacity style={styles.connectButton} onPress={connect}>
               <Icon name="wifi" size={20} color="white" />
-              <Text style={styles.buttonText}>Connect</Text>
+              <Text style={styles.buttonText}>Connect to AI</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
@@ -313,6 +305,14 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
             </View>
           </View>
         )}
+
+        {/* Info Banner */}
+        <View style={styles.infoBanner}>
+          <Icon name="info-outline" size={16} color="#6B4E8D" />
+          <Text style={styles.infoText}>
+            Text-only chat mode • No voice recording • Powered by OpenAI
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -545,6 +545,9 @@ const styles = StyleSheet.create({
   assistantRoleText: {
     color: '#6B7280',
   },
+  userMessageText: {
+    color: 'white',
+  },
   timestampText: {
     fontSize: 11,
     color: '#9CA3AF',
@@ -558,6 +561,9 @@ const styles = StyleSheet.create({
   },
   assistantMessageText: {
     color: '#1F2937',
+  },
+  userTimestampText: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   controls: {
     backgroundColor: 'white',
@@ -661,6 +667,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     gap: 12,
+    marginBottom: 16,
   },
   textInput: {
     flex: 1,
@@ -686,5 +693,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1D5DB',
     shadowOpacity: 0,
     elevation: 0,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#6B4E8D',
+    fontStyle: 'italic',
   },
 }); 

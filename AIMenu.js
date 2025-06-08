@@ -23,7 +23,7 @@ export default function AIMenu({ onClose }) {
           
           {/* Header with close button */}
           <View style={styles.header}>
-            <Text style={styles.title}>AI Assistant</Text>
+            <Text style={styles.title}>AI Text Chat</Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Text style={styles.closeIcon}>✕</Text>
             </TouchableOpacity>
