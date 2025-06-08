@@ -3,13 +3,13 @@ import { OpenAISessionResponse } from '../types';
 export class SessionService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'YOUR_BACKEND_URL') {
+  constructor(baseUrl: string = 'http://localhost:8000') {
     this.baseUrl = baseUrl;
   }
 
   async getEphemeralKey(): Promise<string> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/session`, {
+      const response = await fetch(`${this.baseUrl}/session`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -33,30 +33,3 @@ export class SessionService {
     }
   }
 }
-
-// Example backend implementation you'll need to create
-export const createSessionEndpoint = () => {
-  /*
-  // Express.js example for your backend:
-  app.get('/api/session', async (req, res) => {
-    try {
-      const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-realtime-preview-2024-12-17',
-        }),
-      });
-      
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      console.error('Error creating session:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  });
-  */
-}; 

@@ -1,18 +1,18 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
-  ScrollView,
   StyleSheet,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { RealtimeClient } from '../services/RealtimeClient';
 import { SessionService } from '../services/SessionService';
 import { useTranscript } from '../contexts/TranscriptContext';
-import { SessionStatus, TranscriptItem } from '../types';
+import { SessionStatus } from '../types';
 
 interface VoiceChatProps {
   backendUrl?: string;
@@ -20,26 +20,67 @@ interface VoiceChatProps {
 
 export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
   const [status, setStatus] = useState<SessionStatus>('DISCONNECTED');
-  const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   
-  const { transcriptItems, addMessage, updateMessage, clearTranscript } = useTranscript();
   const clientRef = useRef<RealtimeClient | null>(null);
   const sessionServiceRef = useRef<SessionService | null>(null);
+  const orbScale = useRef(new Animated.Value(1)).current;
+  const orbOpacity = useRef(new Animated.Value(0.6)).current;
 
-  // Initialize session service
-  React.useEffect(() => {
+  // Initialize session service and auto-connect
+  useEffect(() => {
     if (backendUrl && backendUrl !== "YOUR_BACKEND_URL") {
       sessionServiceRef.current = new SessionService(backendUrl);
+      connect();
     }
   }, [backendUrl]);
 
-  const handleMessage = (item: TranscriptItem) => {
-    if (transcriptItems.find(t => t.itemId === item.itemId)) {
-      updateMessage(item.itemId, item.text || '');
-    } else {
-      addMessage(item.itemId, item.role || 'assistant', item.text || '');
-    }
+  // Breathing animation
+  useEffect(() => {
+    const breathingAnimation = Animated.parallel([
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(orbScale, {
+            toValue: 1.2,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(orbScale, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(orbOpacity, {
+            toValue: 0.8,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(orbOpacity, {
+            toValue: 0.6,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+    ]);
+
+    breathingAnimation.start();
+
+    return () => {
+      breathingAnimation.stop();
+    };
+  }, []);
+
+  const handleMessage = (item: any) => {
+    // Handle messages if needed
   };
 
   const handleStatusChange = (newStatus: SessionStatus) => {
@@ -87,117 +128,37 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
     }
   };
 
-  const sendTextMessage = async () => {
-    if (clientRef.current && inputText.trim()) {
-      addMessage(`user-${Date.now()}`, 'user', inputText);
-      await clientRef.current.sendTextMessage(inputText);
-      setInputText('');
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'CONNECTED': return '#4CAF50';
-      case 'CONNECTING': return '#FF9800';
-      case 'DISCONNECTED': return '#F44336';
-      default: return '#9E9E9E';
-    }
-  };
-
-  const renderTranscriptItem = (item: TranscriptItem) => (
-    <View key={item.itemId} style={[
-      styles.messageContainer,
-      item.role === 'user' ? styles.userMessage : styles.assistantMessage
-    ]}>
-      <Text style={styles.roleText}>{item.role === 'user' ? 'You' : 'Assistant'}</Text>
-      <Text style={styles.messageText}>{item.text}</Text>
-      <Text style={styles.timestampText}>{item.timestamp}</Text>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Voice Assistant</Text>
-        <View style={styles.statusContainer}>
-          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]} />
-          <Text style={styles.statusText}>{status}</Text>
-        </View>
+      {/* Breathing Orb */}
+      <View style={styles.orbContainer}>
+        <Animated.View
+          style={[
+            styles.orb,
+            {
+              transform: [{ scale: orbScale }],
+              opacity: orbOpacity,
+              backgroundColor: isRecording ? '#FF6B6B' : '#6B4E8D',
+            },
+          ]}
+        />
+        <Text style={styles.orbText}>
+          {isRecording ? 'Listening...' : 'Hold to Speak'}
+        </Text>
       </View>
 
-      {/* Transcript */}
-      <ScrollView style={styles.transcript} showsVerticalScrollIndicator={false}>
-        {transcriptItems.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon name="chat" size={48} color="#6B4E8D" />
-            <Text style={styles.emptyStateTitle}>Start a conversation</Text>
-            <Text style={styles.emptyStateSubtitle}>Connect to begin chatting with your AI assistant</Text>
-          </View>
-        ) : (
-          transcriptItems.map(renderTranscriptItem)
-        )}
-      </ScrollView>
-
-      {/* Controls */}
-      <View style={styles.controls}>
-        {/* Connection Controls */}
-        <View style={styles.connectionControls}>
-          {status === 'DISCONNECTED' ? (
-            <TouchableOpacity style={styles.connectButton} onPress={connect}>
-              <Icon name="wifi" size={20} color="white" />
-              <Text style={styles.buttonText}>Connect</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
-              <Icon name="wifi-off" size={20} color="white" />
-              <Text style={styles.buttonText}>Disconnect</Text>
-            </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity style={styles.clearButton} onPress={clearTranscript}>
-            <Icon name="clear-all" size={20} color="white" />
-            <Text style={styles.buttonText}>Clear</Text>
+      {/* Voice Controls */}
+      {status === 'CONNECTED' && (
+        <View style={styles.voiceControls}>
+          <TouchableOpacity
+            style={[styles.recordButton, isRecording && styles.recordingButton]}
+            onPressIn={startRecording}
+            onPressOut={stopRecording}
+          >
+            <Icon name={isRecording ? "stop" : "mic"} size={24} color="white" />
           </TouchableOpacity>
         </View>
-
-        {/* Voice Controls */}
-        {status === 'CONNECTED' && (
-          <View style={styles.voiceControls}>
-            <TouchableOpacity
-              style={[styles.recordButton, isRecording && styles.recordingButton]}
-              onPressIn={startRecording}
-              onPressOut={stopRecording}
-            >
-              <Icon name={isRecording ? "stop" : "mic"} size={24} color="white" />
-              <Text style={styles.recordButtonText}>
-                {isRecording ? 'Recording...' : 'Hold to Talk'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Text Input */}
-        {status === 'CONNECTED' && (
-          <View style={styles.textInputContainer}>
-            <TextInput
-              style={styles.textInput}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Type a message..."
-              placeholderTextColor="#6B4E8D"
-              multiline
-            />
-            <TouchableOpacity 
-              style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]} 
-              onPress={sendTextMessage}
-              disabled={!inputText.trim()}
-            >
-              <Icon name="send" size={20} color={inputText.trim() ? "white" : "#6B4E8D"} />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+      )}
     </View>
   );
 };
@@ -206,195 +167,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#E8E3FF',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'white',
-    elevation: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  orbContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orb: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#6B4E8D',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  orbText: {
+    marginTop: 20,
+    fontSize: 18,
     color: '#2D1B69',
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  statusText: {
-    fontSize: 14,
-    color: '#6B4E8D',
     fontWeight: '500',
   },
-  transcript: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2D1B69',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateSubtitle: {
-    fontSize: 16,
-    color: '#6B4E8D',
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  messageContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  userMessage: {
-    backgroundColor: '#8B5CF6',
-    marginLeft: 40,
-  },
-  assistantMessage: {
-    backgroundColor: 'white',
-    marginRight: 40,
-  },
-  roleText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B4E8D',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  messageText: {
-    fontSize: 16,
-    color: '#2D1B69',
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  timestampText: {
-    fontSize: 12,
-    color: '#6B4E8D',
-  },
-  controls: {
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    elevation: 8,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  connectionControls: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  connectButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  disconnectButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F44336',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  clearButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#6B4E8D',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   voiceControls: {
-    marginBottom: 16,
+    position: 'absolute',
+    bottom: 40,
+    alignItems: 'center',
   },
   recordButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#6B4E8D',
     justifyContent: 'center',
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   recordingButton: {
-    backgroundColor: '#FF4444',
-  },
-  recordButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  textInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#2D1B69',
-    maxHeight: 100,
-  },
-  sendButton: {
-    backgroundColor: '#8B5CF6',
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FF6B6B',
   },
 }); 

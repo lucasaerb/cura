@@ -31,7 +31,7 @@ export default function AIMenu({ onClose }) {
 
           {/* Voice Chat Component */}
           <View style={styles.content}>
-            <VoiceChat backendUrl="YOUR_BACKEND_URL" />
+            <VoiceChat backendUrl="http://localhost:8000" />
           </View>
         </SafeAreaView>
       </TranscriptProvider>

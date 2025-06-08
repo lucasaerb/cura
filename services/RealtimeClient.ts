@@ -1,15 +1,19 @@
-import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
-import { Platform } from 'react-native';
+import {
+  mediaDevices,
+  RTCPeerConnection,
+  MediaStream,
+  RTCView,
+} from 'react-native-webrtc-web-shim';
+import InCallManager from 'react-native-incall-manager';
 import { SessionStatus, RealtimeClientOptions } from '../types';
-import { OpenAIService } from './OpenAIService';
 
 export class RealtimeClient {
+  private peerConnection: RTCPeerConnection | null = null;
+  private dataChannel: any = null;
   private options: RealtimeClientOptions;
   private status: SessionStatus = 'DISCONNECTED';
-  private openAIService: OpenAIService | null = null;
-  private recording: Audio.Recording | null = null;
-  private conversationHistory: Array<{role: string, content: string}> = [];
+  private isRecording = false;
+  private localMediaStream: MediaStream | null = null;
 
   constructor(options: RealtimeClientOptions) {
     this.options = options;
@@ -19,38 +23,68 @@ export class RealtimeClient {
     try {
       this.updateStatus('CONNECTING');
       
-      // Get OpenAI API key - for testing, we'll use a hardcoded one
-      // In production, this should come from your backend
-      const apiKey = await this.getAPIKey();
+      // Get ephemeral key from your backend
+      const ephemeralKey = await this.options.getEphemeralKey();
       
-      if (!apiKey) {
-        throw new Error('No OpenAI API key provided');
-      }
-
-      this.openAIService = new OpenAIService(apiKey);
+      // Enable audio and force speaker
+      await InCallManager.start({ media: 'audio' });
+      InCallManager.setForceSpeakerphoneOn(true);
       
-      // Test the connection with a simple request
-      await this.openAIService.sendMessage([
-        { role: 'user', content: 'Hello' }
-      ]);
+      // Setup WebRTC peer connection
+      this.peerConnection = new RTCPeerConnection();
 
-      // Request audio permissions
-      if (Platform.OS !== 'web') {
-        const { granted } = await Audio.requestPermissionsAsync();
-        if (!granted) {
-          throw new Error('Audio permissions not granted');
-        }
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-        });
-      }
+      // Create data channel for OpenAI events
+      this.dataChannel = this.peerConnection.createDataChannel('oai-events', {
+        ordered: true,
+      });
 
-      this.updateStatus('CONNECTED');
-      console.log('🤖 AI Assistant connected to OpenAI!');
+      // Setup data channel event handlers
+      this.dataChannel.onopen = () => {
+        console.log('Data channel opened');
+        this.updateStatus('CONNECTED');
+        this.initializeSession();
+      };
+
+      this.dataChannel.onmessage = (event: any) => {
+        this.handleMessage(JSON.parse(event.data));
+      };
+
+      // Get user media (microphone)
+      const stream = await mediaDevices.getUserMedia({
+        audio: true,
+        video: false,
+      });
+
+      this.localMediaStream = stream;
       
-      // Send a welcome message
-      this.sendWelcomeMessage();
+      // Add audio track to peer connection
+      stream.getTracks().forEach((track: any) => {
+        this.peerConnection?.addTrack(track, stream);
+      });
+
+      // Create and send offer to OpenAI
+      const offer = await this.peerConnection.createOffer({});
+      await this.peerConnection.setLocalDescription(offer);
+
+      // Send offer to OpenAI Realtime API
+      const baseUrl = 'https://api.openai.com/v1/realtime';
+      const model = 'gpt-4o-realtime-preview-2024-12-17';
+      const response = await fetch(`${baseUrl}?model=${model}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ephemeralKey}`,
+          'Content-Type': 'application/sdp',
+        },
+        body: offer.sdp,
+      });
+
+      const answerSdp = await response.text();
+      const answer = {
+        type: 'answer',
+        sdp: answerSdp,
+      };
+
+      await this.peerConnection.setRemoteDescription(answer);
 
     } catch (error) {
       console.error('Connection failed:', error);
@@ -59,195 +93,164 @@ export class RealtimeClient {
     }
   }
 
-  private async getAPIKey(): Promise<string> {
-    // TODO: Replace with your OpenAI API key
-    // For security, this should come from a backend service
-    const API_KEY = 'YOUR_OPENAI_API_KEY_HERE';
-    
-    if (API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
-      throw new Error('Please set your OpenAI API key in services/RealtimeClient.ts');
-    }
-    
-    return API_KEY;
-  }
+  private initializeSession(): void {
+    if (!this.dataChannel) return;
 
-  private sendWelcomeMessage(): void {
-    this.options.onMessage?.({
-      itemId: `ai-welcome-${Date.now()}`,
-      type: 'MESSAGE',
-      role: 'assistant',
-      text: "Hi Linda! I'm your medication assistant. I can help you track your medications, answer questions about your schedule, or just chat about your health journey. How can I help you today?",
-      timestamp: new Date().toLocaleTimeString(),
-      createdAtMs: Date.now(),
-      status: 'DONE',
+    // Initialize OpenAI session
+    this.sendEvent({
+      type: 'session.update',
+      session: {
+        modalities: ['text', 'audio'],
+        instructions: 'You are a helpful voice assistant. Respond naturally and concisely. You are supposed to ask users how they are responding to certain medications. You are supposed to ask users how they are feeling about the medication. You are supposed to ask users how they are feeling about the side effects of the medication. You are supposed to ask users how they are feeling about the benefits of the medication.',
+        voice: 'sage',
+        input_audio_format: 'pcm16',
+        output_audio_format: 'pcm16',
+        input_audio_transcription: {
+          model: 'whisper-1',
+        },
+        turn_detection: {
+          type: 'server_vad',
+          threshold: 0.3,
+          prefix_padding_ms: 500,
+          silence_duration_ms: 1000,
+        },
+        tools: [],
+        tool_choice: 'none',
+        temperature: 0.8,
+      },
     });
   }
 
-  async startRecording(): Promise<void> {
-    try {
-      if (Platform.OS === 'web') {
-        console.log('🎤 Voice recording not supported on web - use text input');
-        return;
-      }
+  private handleMessage(event: any): void {
+    console.log('Received event:', event);
 
-      console.log('🎤 Starting recording...');
-      
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      
-      this.recording = recording;
-      console.log('Recording started');
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-    }
-  }
-
-  async stopRecording(): Promise<void> {
-    try {
-      if (!this.recording) {
-        console.log('No recording to stop');
-        return;
-      }
-
-      console.log('🛑 Stopping recording...');
-      await this.recording.stopAndUnloadAsync();
-      
-      const uri = this.recording.getURI();
-      this.recording = null;
-
-      if (uri && this.openAIService) {
-        console.log('📝 Transcribing audio...');
-        
-        // Show user that we're processing
-        this.options.onMessage?.({
-          itemId: `user-processing-${Date.now()}`,
-          type: 'MESSAGE',
-          role: 'user',
-          text: '🎤 Transcribing...',
-          timestamp: new Date().toLocaleTimeString(),
-          createdAtMs: Date.now(),
-          status: 'IN_PROGRESS',
-        });
-
-        try {
-          const transcription = await this.openAIService.transcribeAudio(uri);
-          
-          if (transcription.trim()) {
-            // Update the processing message with actual transcription
-            this.options.onMessage?.({
-              itemId: `user-${Date.now()}`,
-              type: 'MESSAGE',
-              role: 'user',
-              text: transcription,
-              timestamp: new Date().toLocaleTimeString(),
-              createdAtMs: Date.now(),
-              status: 'DONE',
-            });
-
-            // Send to AI for response
-            await this.processUserMessage(transcription);
-          }
-        } catch (error) {
-          console.error('Transcription failed:', error);
+    switch (event.type) {
+      case 'conversation.item.created':
+        if (event.item.role) {
+          console.log('New conversation item created:', event.item);
           this.options.onMessage?.({
-            itemId: `error-${Date.now()}`,
+            itemId: event.item.id,
+            type: 'MESSAGE',
+            role: event.item.role,
+            text: '',
+            timestamp: new Date().toLocaleTimeString(),
+            createdAtMs: Date.now(),
+            status: 'IN_PROGRESS',
+          });
+        }
+        break;
+
+      case 'response.text.delta':
+        if (event.delta && event.item_id) {
+          console.log('Received text delta:', event.delta);
+          // Update text with delta
+          this.options.onMessage?.({
+            itemId: event.item_id,
             type: 'MESSAGE',
             role: 'assistant',
-            text: 'Sorry, I couldn\'t understand the audio. Please try again or use text input.',
+            text: event.delta,
+            timestamp: new Date().toLocaleTimeString(),
+            createdAtMs: Date.now(),
+            status: 'IN_PROGRESS',
+          });
+        }
+        break;
+
+      case 'response.audio_transcript.delta':
+        if (event.delta && event.item_id) {
+          console.log('Received audio transcript delta:', event.delta);
+          // Update transcript with delta
+          this.options.onMessage?.({
+            itemId: event.item_id,
+            type: 'MESSAGE',
+            role: 'assistant',
+            text: event.delta,
+            timestamp: new Date().toLocaleTimeString(),
+            createdAtMs: Date.now(),
+            status: 'IN_PROGRESS',
+          });
+        }
+        break;
+
+      case 'response.done':
+        if (event.item_id) {
+          console.log('Response completed for item:', event.item_id);
+          // Mark response as complete
+          this.options.onMessage?.({
+            itemId: event.item_id,
+            type: 'MESSAGE',
+            role: 'assistant',
+            text: '',
             timestamp: new Date().toLocaleTimeString(),
             createdAtMs: Date.now(),
             status: 'DONE',
           });
         }
-      }
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
+        break;
+
+      case 'error':
+        console.error('OpenAI error:', event);
+        break;
     }
   }
 
-  async sendTextMessage(text: string): Promise<void> {
-    console.log('📝 Sending text:', text);
-    await this.processUserMessage(text);
+  private sendEvent(event: any): void {
+    if (this.dataChannel && this.dataChannel.readyState === 'open') {
+      this.dataChannel.send(JSON.stringify(event));
+    }
   }
 
-  private async processUserMessage(message: string): Promise<void> {
-    if (!this.openAIService) {
-      throw new Error('AI service not connected');
+  startRecording(): void {
+    if (!this.isRecording) {
+      console.log('Starting recording...');
+      this.isRecording = true;
+      this.sendEvent({ type: 'input_audio_buffer.clear' });
     }
+  }
 
-    try {
-      // Add user message to conversation history
-      this.conversationHistory.push({ role: 'user', content: message });
-
-      // Keep conversation history manageable (last 10 messages)
-      if (this.conversationHistory.length > 10) {
-        this.conversationHistory = this.conversationHistory.slice(-10);
-      }
-
-      console.log('🤖 Getting AI response...');
-      
-      // Show typing indicator
-      const typingId = `ai-typing-${Date.now()}`;
-      this.options.onMessage?.({
-        itemId: typingId,
-        type: 'MESSAGE',
-        role: 'assistant',
-        text: '💭 Thinking...',
-        timestamp: new Date().toLocaleTimeString(),
-        createdAtMs: Date.now(),
-        status: 'IN_PROGRESS',
-      });
-
-      const response = await this.openAIService.sendMessage(this.conversationHistory);
-      
-      // Add AI response to conversation history
-      this.conversationHistory.push({ role: 'assistant', content: response });
-
-      // Send the actual response
-      this.options.onMessage?.({
-        itemId: `ai-${Date.now()}`,
-        type: 'MESSAGE',
-        role: 'assistant',
-        text: response,
-        timestamp: new Date().toLocaleTimeString(),
-        createdAtMs: Date.now(),
-        status: 'DONE',
-      });
-
-      // Speak the response on mobile
-      if (Platform.OS !== 'web') {
-        Speech.speak(response, {
-          language: 'en',
-          pitch: 1.0,
-          rate: 0.9,
-        });
-      }
-
-    } catch (error) {
-      console.error('Failed to process message:', error);
-      this.options.onMessage?.({
-        itemId: `error-${Date.now()}`,
-        type: 'MESSAGE',
-        role: 'assistant',
-        text: 'Sorry, I encountered an error processing your request. Please try again.',
-        timestamp: new Date().toLocaleTimeString(),
-        createdAtMs: Date.now(),
-        status: 'DONE',
-      });
+  stopRecording(): void {
+    if (this.isRecording) {
+      console.log('Stopping recording...');
+      this.isRecording = false;
+      this.sendEvent({ type: 'input_audio_buffer.commit' });
+      this.sendEvent({ type: 'response.create' });
     }
+  }
+
+  sendTextMessage(text: string): void {
+    this.sendEvent({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: text,
+          },
+        ],
+      },
+    });
+    this.sendEvent({ type: 'response.create' });
   }
 
   disconnect(): void {
-    if (this.recording) {
-      this.recording.stopAndUnloadAsync();
-      this.recording = null;
-    }
+    // Stop InCallManager
+    InCallManager.stop();
     
-    this.openAIService = null;
-    this.conversationHistory = [];
+    if (this.peerConnection) {
+      this.peerConnection.close();
+      this.peerConnection = null;
+    }
+    if (this.dataChannel) {
+      this.dataChannel.close();
+      this.dataChannel = null;
+    }
+    if (this.localMediaStream) {
+      this.localMediaStream.getTracks().forEach(track => track.stop());
+      this.localMediaStream = null;
+    }
     this.updateStatus('DISCONNECTED');
-    console.log('👋 AI Assistant disconnected');
   }
 
   private updateStatus(status: SessionStatus): void {
