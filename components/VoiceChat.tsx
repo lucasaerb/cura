@@ -7,12 +7,16 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { RealtimeClient } from '../services/RealtimeClient';
 import { SessionService } from '../services/SessionService';
 import { useTranscript } from '../contexts/TranscriptContext';
 import { SessionStatus, TranscriptItem } from '../types';
+
+const { width } = Dimensions.get('window');
 
 interface VoiceChatProps {
   backendUrl?: string;
@@ -26,6 +30,7 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
   const { transcriptItems, addMessage, updateMessage, clearTranscript } = useTranscript();
   const clientRef = useRef<RealtimeClient | null>(null);
   const sessionServiceRef = useRef<SessionService | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Initialize session service
   React.useEffect(() => {
@@ -33,6 +38,28 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
       sessionServiceRef.current = new SessionService(backendUrl);
     }
   }, [backendUrl]);
+
+  // Pulse animation for recording
+  React.useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isRecording]);
 
   const handleMessage = (item: TranscriptItem) => {
     if (transcriptItems.find(t => t.itemId === item.itemId)) {
@@ -92,21 +119,59 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
 
   const getStatusColor = () => {
     switch (status) {
-      case 'CONNECTED': return '#4CAF50';
-      case 'CONNECTING': return '#FF9800';
-      case 'DISCONNECTED': return '#F44336';
-      default: return '#9E9E9E';
+      case 'CONNECTED': return '#10B981';
+      case 'CONNECTING': return '#F59E0B';
+      case 'DISCONNECTED': return '#EF4444';
+      default: return '#9CA3AF';
+    }
+  };
+
+  const getStatusText = () => {
+    switch (status) {
+      case 'CONNECTED': return 'Online';
+      case 'CONNECTING': return 'Connecting...';
+      case 'DISCONNECTED': return 'Offline';
+      default: return 'Unknown';
     }
   };
 
   const renderTranscriptItem = (item: TranscriptItem) => (
     <View key={item.itemId} style={[
-      styles.messageContainer,
-      item.role === 'user' ? styles.userMessage : styles.assistantMessage
+      styles.messageWrapper,
+      item.role === 'user' ? styles.userMessageWrapper : styles.assistantMessageWrapper
     ]}>
-      <Text style={styles.roleText}>{item.role === 'user' ? 'You' : 'Assistant'}</Text>
-      <Text style={styles.messageText}>{item.text}</Text>
-      <Text style={styles.timestampText}>{item.timestamp}</Text>
+      <View style={[
+        styles.messageContainer,
+        item.role === 'user' ? styles.userMessage : styles.assistantMessage
+      ]}>
+        <View style={styles.messageHeader}>
+          <View style={styles.avatarContainer}>
+            <View style={[
+              styles.avatar,
+              item.role === 'user' ? styles.userAvatar : styles.assistantAvatar
+            ]}>
+              <Icon 
+                name={item.role === 'user' ? 'person' : 'smart_toy'} 
+                size={16} 
+                color="white" 
+              />
+            </View>
+            <Text style={[
+              styles.roleText,
+              item.role === 'user' ? styles.userRoleText : styles.assistantRoleText
+            ]}>
+              {item.role === 'user' ? 'You' : 'Assistant'}
+            </Text>
+          </View>
+          <Text style={styles.timestampText}>{item.timestamp}</Text>
+        </View>
+        <Text style={[
+          styles.messageText,
+          item.role === 'user' ? styles.userMessageText : styles.assistantMessageText
+        ]}>
+          {item.text}
+        </Text>
+      </View>
     </View>
   );
 
@@ -114,23 +179,74 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Voice Assistant</Text>
-        <View style={styles.statusContainer}>
-          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]} />
-          <Text style={styles.statusText}>{status}</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.titleContainer}>
+            <View style={styles.logoContainer}>
+              <Icon name="medical-services" size={24} color="#7C3AED" />
+            </View>
+            <View>
+              <Text style={styles.title}>Medication Assistant</Text>
+              <Text style={styles.subtitle}>Your personal health companion</Text>
+            </View>
+          </View>
+          <View style={styles.statusContainer}>
+            <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]} />
+            <Text style={[styles.statusText, { color: getStatusColor() }]}>
+              {getStatusText()}
+            </Text>
+          </View>
         </View>
       </View>
 
       {/* Transcript */}
-      <ScrollView style={styles.transcript} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.transcript} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.transcriptContent}
+      >
         {transcriptItems.length === 0 ? (
           <View style={styles.emptyState}>
-            <Icon name="chat" size={48} color="#6B4E8D" />
-            <Text style={styles.emptyStateTitle}>Start a conversation</Text>
-            <Text style={styles.emptyStateSubtitle}>Connect to begin chatting with your AI assistant</Text>
+            <View style={styles.emptyStateIcon}>
+              <Icon name="chat-bubble-outline" size={64} color="#A855F7" />
+            </View>
+            <Text style={styles.emptyStateTitle}>Welcome to Your Health Assistant</Text>
+            <Text style={styles.emptyStateSubtitle}>
+              I'm here to help you track your medications, answer questions about your health schedule, 
+              and support your wellness journey. Connect to start our conversation!
+            </Text>
+            <View style={styles.emptyStateFeatures}>
+              <View style={styles.featureItem}>
+                <Icon name="medication" size={20} color="#7C3AED" />
+                <Text style={styles.featureText}>Medication Tracking</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="schedule" size={20} color="#7C3AED" />
+                <Text style={styles.featureText}>Schedule Management</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="health-and-safety" size={20} color="#7C3AED" />
+                <Text style={styles.featureText}>Health Insights</Text>
+              </View>
+            </View>
           </View>
         ) : (
-          transcriptItems.map(renderTranscriptItem)
+          <>
+            <View style={styles.welcomeMessage}>
+              <View style={styles.assistantWelcome}>
+                <View style={styles.assistantAvatarLarge}>
+                  <Icon name="smart_toy" size={24} color="white" />
+                </View>
+                <View style={styles.welcomeContent}>
+                  <Text style={styles.welcomeTitle}>Hi Linda! I'm your medication assistant.</Text>
+                  <Text style={styles.welcomeText}>
+                    I can help you track your medications, answer questions about your schedule, 
+                    or just chat about your health journey. How can I help you today?
+                  </Text>
+                </View>
+              </View>
+            </View>
+            {transcriptItems.map(renderTranscriptItem)}
+          </>
         )}
       </ScrollView>
 
@@ -151,7 +267,7 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
           )}
           
           <TouchableOpacity style={styles.clearButton} onPress={clearTranscript}>
-            <Icon name="clear-all" size={20} color="white" />
+            <Icon name="refresh" size={20} color="white" />
             <Text style={styles.buttonText}>Clear</Text>
           </TouchableOpacity>
         </View>
@@ -159,37 +275,42 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
         {/* Voice Controls */}
         {status === 'CONNECTED' && (
           <View style={styles.voiceControls}>
-            <TouchableOpacity
-              style={[styles.recordButton, isRecording && styles.recordingButton]}
-              onPressIn={startRecording}
-              onPressOut={stopRecording}
-            >
-              <Icon name={isRecording ? "stop" : "mic"} size={24} color="white" />
-              <Text style={styles.recordButtonText}>
-                {isRecording ? 'Recording...' : 'Hold to Talk'}
-              </Text>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity
+                style={[styles.recordButton, isRecording && styles.recordingButton]}
+                onPressIn={startRecording}
+                onPressOut={stopRecording}
+              >
+                <Icon name={isRecording ? "stop" : "mic"} size={28} color="white" />
+                <Text style={styles.recordButtonText}>
+                  {isRecording ? 'Release to Stop' : 'Hold to Talk'}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         )}
 
         {/* Text Input */}
         {status === 'CONNECTED' && (
           <View style={styles.textInputContainer}>
-            <TextInput
-              style={styles.textInput}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Type a message..."
-              placeholderTextColor="#6B4E8D"
-              multiline
-            />
-            <TouchableOpacity 
-              style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]} 
-              onPress={sendTextMessage}
-              disabled={!inputText.trim()}
-            >
-              <Icon name="send" size={20} color={inputText.trim() ? "white" : "#6B4E8D"} />
-            </TouchableOpacity>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.textInput}
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Type your message here..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity 
+                style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]} 
+                onPress={sendTextMessage}
+                disabled={!inputText.trim()}
+              >
+                <Icon name="send" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
@@ -200,109 +321,256 @@ export const VoiceChat: React.FC<VoiceChatProps> = ({ backendUrl }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8E3FF',
+    backgroundColor: '#F8FAFC',
   },
   header: {
+    backgroundColor: 'white',
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'white',
-    elevation: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  logoContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#EDE9FE',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2D1B69',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '400',
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   statusText: {
-    fontSize: 14,
-    color: '#6B4E8D',
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
   },
   transcript: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    backgroundColor: '#F8FAFC',
+  },
+  transcriptContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyStateIcon: {
+    width: 120,
+    height: 120,
+    backgroundColor: '#F3E8FF',
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2D1B69',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   emptyStateSubtitle: {
     fontSize: 16,
-    color: '#6B4E8D',
+    color: '#6B7280',
     textAlign: 'center',
-    paddingHorizontal: 40,
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  emptyStateFeatures: {
+    gap: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  featureText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginLeft: 12,
+  },
+  welcomeMessage: {
+    marginBottom: 24,
+  },
+  assistantWelcome: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  assistantAvatarLarge: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#7C3AED',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  welcomeContent: {
+    gap: 8,
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  welcomeText: {
+    fontSize: 15,
+    color: '#4B5563',
+    lineHeight: 22,
+  },
+  messageWrapper: {
+    marginBottom: 16,
+  },
+  userMessageWrapper: {
+    alignItems: 'flex-end',
+  },
+  assistantMessageWrapper: {
+    alignItems: 'flex-start',
   },
   messageContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
+    maxWidth: width * 0.8,
+    borderRadius: 20,
     padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   userMessage: {
-    backgroundColor: '#8B5CF6',
-    marginLeft: 40,
+    backgroundColor: '#7C3AED',
+    borderBottomRightRadius: 6,
   },
   assistantMessage: {
     backgroundColor: 'white',
-    marginRight: 40,
+    borderBottomLeftRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  messageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  avatarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  userAvatar: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  assistantAvatar: {
+    backgroundColor: '#7C3AED',
   },
   roleText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B4E8D',
-    marginBottom: 8,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  messageText: {
-    fontSize: 16,
-    color: '#2D1B69',
-    lineHeight: 22,
-    marginBottom: 8,
+  userRoleText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  assistantRoleText: {
+    color: '#6B7280',
   },
   timestampText: {
-    fontSize: 12,
-    color: '#6B4E8D',
+    fontSize: 11,
+    color: '#9CA3AF',
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  userMessageText: {
+    color: 'white',
+  },
+  assistantMessageText: {
+    color: '#1F2937',
   },
   controls: {
     backgroundColor: 'white',
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 30,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    elevation: 8,
-    shadowOffset: { width: 0, height: -2 },
+    paddingBottom: 34,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 12,
+    elevation: 8,
   },
   connectionControls: {
     flexDirection: 'row',
@@ -314,29 +582,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    borderRadius: 16,
     gap: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   disconnectButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F44336',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    paddingVertical: 14,
+    borderRadius: 16,
     gap: 8,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   clearButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6B4E8D',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: '#6B7280',
+    paddingVertical: 14,
+    borderRadius: 16,
     gap: 8,
   },
   buttonText: {
@@ -351,45 +629,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: '#7C3AED',
+    paddingVertical: 18,
+    borderRadius: 20,
     gap: 12,
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
   },
   recordingButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#EF4444',
+    shadowColor: '#EF4444',
   },
   recordButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   textInputContainer: {
+    marginTop: 4,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     gap: 12,
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     fontSize: 16,
-    color: '#2D1B69',
+    color: '#1F2937',
     maxHeight: 100,
+    minHeight: 20,
   },
   sendButton: {
-    backgroundColor: '#8B5CF6',
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    backgroundColor: '#7C3AED',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sendButtonDisabled: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#D1D5DB',
+    shadowOpacity: 0,
+    elevation: 0,
   },
 }); 
