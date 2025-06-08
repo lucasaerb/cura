@@ -22,6 +22,7 @@ import AIMenu from './AIMenu';
 import ReportPage from './ReportPage';
 import CalendarPage from './CalendarPage';
 import ProfilePage from './ProfilePage';
+import CheckInPage from './CheckInPage';
 
 const { width } = Dimensions.get('window');
 
@@ -101,9 +102,11 @@ export default function App() {
   const [imageError, setImageError] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState(null);
   const [showAIMenu, setShowAIMenu] = useState(false);
+  const [isCheckIn, setIsCheckIn] = useState(false);
   const [showReportPage, setShowReportPage] = useState(false);
   const [showCalendarPage, setShowCalendarPage] = useState(false);
   const [showProfilePage, setShowProfilePage] = useState(false);
+  const [showCheckInPage, setShowCheckInPage] = useState(false);
   const medicationAnimations = useRef(new Map()).current;
 
   // Animation values
@@ -377,7 +380,10 @@ export default function App() {
 
   // If AI menu is open, show AI menu instead of main app
   if (showAIMenu) {
-    return <AIMenu onClose={() => setShowAIMenu(false)} />;
+    return <AIMenu onClose={() => {
+      setShowAIMenu(false);
+      setIsCheckIn(false);
+    }} isCheckIn={isCheckIn} />;
   }
 
   // If report page is open, show report page instead of main app
@@ -388,6 +394,11 @@ export default function App() {
   // If calendar page is open, show calendar page instead of main app
   if (showCalendarPage) {
     return <CalendarPage onClose={() => setShowCalendarPage(false)} />;
+  }
+
+  // If check-in page is open, show check-in page instead of main app
+  if (showCheckInPage) {
+    return <CheckInPage onClose={() => setShowCheckInPage(false)} userName={userName} />;
   }
 
   return (
@@ -433,7 +444,7 @@ export default function App() {
         </View>
 
         {/* Quick Stats Bar */}
-        <View style={styles.statsBar}>
+        {/* <View style={styles.statsBar}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{medications.filter(m => m.taken).length}</Text>
             <Text style={styles.statLabel}>Taken Today</Text>
@@ -446,7 +457,25 @@ export default function App() {
             <Text style={styles.statNumber}>{medications.length}</Text>
             <Text style={styles.statLabel}>Total Meds</Text>
           </View>
-        </View>
+        </View> */}
+
+        {/* Daily Check-in Banner */}
+        <TouchableOpacity 
+          style={styles.checkInBanner}
+          onPress={() => setShowCheckInPage(true)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.checkInContent}>
+            <View style={styles.checkInIconContainer}>
+              <Icon name="psychology" size={24} color="#2D1B69" />
+            </View>
+            <View style={styles.checkInTextContainer}>
+              <Text style={styles.checkInTitle}>Daily Check-in</Text>
+              <Text style={styles.checkInSubtitle}>Let's see how you're feeling today</Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="#2D1B69" />
+          </View>
+        </TouchableOpacity>
 
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           
@@ -564,14 +593,17 @@ export default function App() {
               <View style={styles.iconContainer}>
                 <Icon name="calendar-today" size={24} color="#2D1B69" />
               </View>
-              <Text style={styles.buttonLabel}>calendar</Text>
+              <Text style={styles.buttonLabel}>history</Text>
             </View>
           </TouchableOpacity>
 
           {/* AI Assistant Button - Center */}
           <TouchableOpacity 
             style={styles.aiButton}
-            onPress={() => setShowAIMenu(true)}
+            onPress={() => {
+              setIsCheckIn(false);
+              setShowAIMenu(true);
+            }}
             activeOpacity={0.9}
           >
             <Animated.View style={[styles.aiButtonInner, { transform: [{ scale: breathingAnim }] }]}>
@@ -628,7 +660,7 @@ export default function App() {
                   <Text style={styles.closeButtonText}>Close</Text>
                 </TouchableOpacity>
               </View>
-    </View>
+            </View>
           </Modal>
         )}
       </SafeAreaView>
