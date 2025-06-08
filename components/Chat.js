@@ -292,6 +292,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#E8E3FF',
+    width: '100%',
   },
   landingContainer: {
     flex: 1,
@@ -335,15 +336,18 @@ const styles = StyleSheet.create({
   },
   messageList: {
     flex: 1,
+    width: '100%',
   },
   messageListContent: {
     padding: 16,
+    width: '100%',
   },
   messageContainer: {
     maxWidth: '80%',
     padding: 12,
     borderRadius: 16,
     marginBottom: 8,
+    width: '100%',
   },
   userMessage: {
     alignSelf: 'flex-end',

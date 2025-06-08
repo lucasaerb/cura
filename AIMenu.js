@@ -69,9 +69,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: '#E8E3FF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    width: '100%',
   },
   placeholderContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
