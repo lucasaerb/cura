@@ -192,6 +192,10 @@ export default function CheckInPage({ onClose, userName = 'Linda' }) {
                 />
               ))}
             </View>
+            <TouchableOpacity style={[styles.voiceModeButton, { marginTop: 150 }]} onPress={() => {}}>
+              <Icon name="keyboard-voice" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.voiceModeButtonText}>Switch to Voice Mode ✨ </Text>
+            </TouchableOpacity>
           </View>
         );
       case 1:
@@ -731,5 +735,26 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  voiceModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#A18AFF',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 18,
+    alignSelf: 'center',
+    shadowColor: '#2D1B69',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  voiceModeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 }); 
